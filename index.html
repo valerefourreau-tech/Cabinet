@@ -422,9 +422,30 @@ function defaultData(){
   return {sources, fiches:[], tags};
 }
 
+function hasClaudeStorage(){
+  return typeof window.storage !== 'undefined' && window.storage && typeof window.storage.get === 'function';
+}
+
+async function storageGet(key){
+  if(hasClaudeStorage()){
+    return await window.storage.get(key, false);
+  }
+  const v = localStorage.getItem(key);
+  if(v === null) throw new Error('not found');
+  return {key, value:v, shared:false};
+}
+
+async function storageSet(key, value){
+  if(hasClaudeStorage()){
+    return await window.storage.set(key, value, false);
+  }
+  localStorage.setItem(key, value);
+  return {key, value, shared:false};
+}
+
 async function loadData(){
   try{
-    const res = await window.storage.get(STORAGE_KEY, false);
+    const res = await storageGet(STORAGE_KEY);
     if(res && res.value){
       data = JSON.parse(res.value);
     } else {
@@ -440,7 +461,7 @@ async function loadData(){
 let saveTimer = null;
 async function saveData(){
   try{
-    const res = await window.storage.set(STORAGE_KEY, JSON.stringify(data), false);
+    const res = await storageSet(STORAGE_KEY, JSON.stringify(data));
     if(!res) console.error('Storage set returned null');
   }catch(e){
     console.error('Storage error', e);
