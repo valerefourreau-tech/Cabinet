@@ -295,6 +295,16 @@
         <input id="source-page" placeholder="ex. 45-52">
       </div>
     </div>
+    <div class="row2">
+      <div class="field">
+        <label>Édition (optionnel)</label>
+        <input id="source-edition" placeholder="ex. 2e éd.">
+      </div>
+      <div class="field">
+        <label>Tome / volume (optionnel)</label>
+        <input id="source-tome" placeholder="ex. t. 2">
+      </div>
+    </div>
     <div class="field" id="field-editeur">
       <label>Maison d'édition</label>
       <input id="source-editeur" placeholder="ex. Fayard">
@@ -667,6 +677,12 @@ function formatOneAuthor(a){
   return `${nom}, ${prenom}`;
 }
 
+function finishCitation(bits, glue){
+  const sep = glue===undefined ? ', ' : glue;
+  const joined = bits.filter(Boolean).join(sep);
+  return /[.?!]$/.test(joined) ? joined : joined + '.';
+}
+
 function citeAuthor(s){
   const raw = (s.auteur || '').trim();
   if(!raw) return '(auteur inconnu)';
@@ -679,7 +695,7 @@ function biblioEntryHtml(s){
     if(s.titre) parts.push(escapeHtml(s.titre));
     if(s.cote) parts.push(escapeHtml(s.cote));
     if(s.date) parts.push(escapeHtml(s.date));
-    return parts.join(', ') + '.';
+    return finishCitation(parts);
   }
   if(s.nature === 'article'){
     const bits = [escapeHtml(citeAuthor(s))];
@@ -688,15 +704,17 @@ function biblioEntryHtml(s){
     if(s.numero) bits.push('n° '+escapeHtml(s.numero));
     if(s.date) bits.push(escapeHtml(s.date));
     if(s.page) bits.push('p. '+escapeHtml(s.page));
-    return bits.join(', ') + '.';
+    return finishCitation(bits);
   }
   const bits = [escapeHtml(citeAuthor(s))];
   if(s.titre) bits.push(`<em>${escapeHtml(s.titre)}</em>`);
+  if(s.tome) bits.push(escapeHtml(s.tome));
+  if(s.edition) bits.push(escapeHtml(s.edition));
   if(s.editeur) bits.push(escapeHtml(s.editeur));
   if(s.ville) bits.push(escapeHtml(s.ville));
   if(s.date) bits.push(escapeHtml(s.date));
   if(s.page) bits.push(escapeHtml(s.page)+' p.');
-  return bits.join(', ') + '.';
+  return finishCitation(bits);
 }
 
 function biblioEntryText(s){
@@ -705,7 +723,7 @@ function biblioEntryText(s){
     if(s.titre) parts.push(s.titre);
     if(s.cote) parts.push(s.cote);
     if(s.date) parts.push(s.date);
-    return parts.join(', ') + '.';
+    return finishCitation(parts);
   }
   if(s.nature === 'article'){
     const bits = [citeAuthor(s)];
@@ -714,15 +732,17 @@ function biblioEntryText(s){
     if(s.numero) bits.push('n° '+s.numero);
     if(s.date) bits.push(s.date);
     if(s.page) bits.push('p. '+s.page);
-    return bits.join(', ') + '.';
+    return finishCitation(bits);
   }
   const bits = [citeAuthor(s)];
   if(s.titre) bits.push(s.titre);
+  if(s.tome) bits.push(s.tome);
+  if(s.edition) bits.push(s.edition);
   if(s.editeur) bits.push(s.editeur);
   if(s.ville) bits.push(s.ville);
   if(s.date) bits.push(s.date);
   if(s.page) bits.push(s.page+' p.');
-  return bits.join(', ') + '.';
+  return finishCitation(bits);
 }
 
 function buildBibliographie(){
@@ -768,7 +788,7 @@ function biblioEntryRtf(s){
     if(s.titre) parts.push(s.titre);
     if(s.cote) parts.push(s.cote);
     if(s.date) parts.push(s.date);
-    return toRtf(parts.join(', ') + '.');
+    return toRtf(finishCitation(parts));
   }
   if(s.nature === 'article'){
     const bits = [toRtf(citeAuthor(s))];
@@ -777,15 +797,17 @@ function biblioEntryRtf(s){
     if(s.numero) bits.push(toRtf('n° '+s.numero));
     if(s.date) bits.push(toRtf(s.date));
     if(s.page) bits.push(toRtf('p. '+s.page));
-    return bits.join(', ') + '.';
+    return finishCitation(bits);
   }
   const bits = [toRtf(citeAuthor(s))];
   if(s.titre) bits.push(`{\\i ${toRtf(s.titre)}}`);
+  if(s.tome) bits.push(toRtf(s.tome));
+  if(s.edition) bits.push(toRtf(s.edition));
   if(s.editeur) bits.push(toRtf(s.editeur));
   if(s.ville) bits.push(toRtf(s.ville));
   if(s.date) bits.push(toRtf(s.date));
   if(s.page) bits.push(toRtf(s.page+' p.'));
-  return bits.join(', ') + '.';
+  return finishCitation(bits);
 }
 
 function downloadBlob(content, filename, mime){
@@ -938,6 +960,8 @@ function openSourceModal(source){
   document.getElementById('source-nature').value = source? (source.nature||'ouvrage') : 'ouvrage';
   document.getElementById('source-page').value = source? (source.page||'') : '';
   document.getElementById('source-editeur').value = source? (source.editeur||'') : '';
+  document.getElementById('source-edition').value = source? (source.edition||'') : '';
+  document.getElementById('source-tome').value = source? (source.tome||'') : '';
   document.getElementById('source-ville').value = source? (source.ville||'') : '';
   document.getElementById('source-revue').value = source? (source.revue||'') : '';
   document.getElementById('source-numero').value = source? (source.numero||'') : '';
@@ -1005,6 +1029,8 @@ document.getElementById('source-save').onclick = async ()=>{
     nature: document.getElementById('source-nature').value,
     page: document.getElementById('source-page').value.trim(),
     editeur: document.getElementById('source-editeur').value.trim(),
+    edition: document.getElementById('source-edition').value.trim(),
+    tome: document.getElementById('source-tome').value.trim(),
     ville: document.getElementById('source-ville').value.trim(),
     revue: document.getElementById('source-revue').value.trim(),
     numero: document.getElementById('source-numero').value.trim(),
