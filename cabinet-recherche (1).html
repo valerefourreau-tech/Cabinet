@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cabinet de recherche — Débits de boisson en Flandre, XVIIe siècle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#EFE8D6;
+    --paper-dark:#E3DAC3;
+    --panel:#F7F3E7;
+    --ink:#2A2018;
+    --ink-soft:#5C5346;
+    --border:#C9BEA1;
+    --wine:#7B2D26;
+    --wine-dark:#5E211C;
+    --gold:#A9822F;
+    --green:#445940;
+    --blue:#3F5566;
+    --plum:#6B3F5C;
+    --ochre:#8C6A2F;
+    --radius:3px;
+    --shadow: 0 1px 0 rgba(42,32,24,0.08);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:'IBM Plex Sans',sans-serif;font-size:14.5px;line-height:1.5;}
+  h1,h2,h3{font-family:'Fraunces',serif;font-weight:600;margin:0;color:var(--ink);}
+  a{color:var(--wine);}
+  button{font-family:inherit;cursor:pointer;}
+  input,textarea,select{font-family:inherit;font-size:inherit;}
+
+  #app{display:flex;min-height:100vh;}
+
+  /* Sidebar */
+  #sidebar{width:230px;flex:0 0 230px;background:var(--panel);border-right:1px solid var(--border);padding:24px 18px;display:flex;flex-direction:column;gap:28px;}
+  .brand{}
+  .brand h1{font-size:19px;line-height:1.25;}
+  .brand .sub{font-size:12px;color:var(--ink-soft);margin-top:6px;font-style:italic;}
+  nav{display:flex;flex-direction:column;gap:2px;}
+  .nav-item{padding:9px 10px;border-radius:var(--radius);font-size:13.5px;color:var(--ink-soft);cursor:pointer;border-left:3px solid transparent;display:flex;justify-content:space-between;align-items:center;}
+  .nav-item:hover{background:var(--paper-dark);}
+  .nav-item.active{color:var(--ink);border-left-color:var(--wine);background:var(--paper-dark);font-weight:500;}
+  .nav-item .count{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);}
+
+  .tag-legend{margin-top:auto;}
+  .tag-legend h3{font-size:11px;letter-spacing:.03em;color:var(--ink-soft);font-weight:500;margin-bottom:10px;font-family:'IBM Plex Sans',sans-serif;}
+  .legend-list{display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto;}
+  .legend-row{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-soft);}
+  .legend-row .legend-name{flex:1;}
+  .legend-row .legend-del{cursor:pointer;color:var(--ink-soft);opacity:.55;font-size:13px;padding:0 2px;}
+  .legend-row .legend-del:hover{opacity:1;color:var(--wine);}
+  .dot{width:8px;height:8px;border-radius:50%;flex:0 0 8px;}
+
+  /* Main */
+  #main{flex:1;padding:30px 40px;max-width:980px;}
+  .view{display:none;}
+  .view.active{display:block;}
+  .view-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:22px;gap:20px;flex-wrap:wrap;}
+  .view-header h2{font-size:26px;}
+  .view-header .desc{color:var(--ink-soft);font-size:13px;margin-top:5px;max-width:520px;}
+
+  .btn{background:var(--wine);color:var(--panel);border:none;padding:9px 16px;border-radius:var(--radius);font-size:13px;font-weight:500;transition:background .15s;}
+  .btn:hover{background:var(--wine-dark);}
+  .btn.secondary{background:transparent;color:var(--ink);border:1px solid var(--border);}
+  .btn.secondary:hover{background:var(--paper-dark);}
+  .btn.small{padding:5px 10px;font-size:12px;}
+
+  .toolbar{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;align-items:center;}
+  .search{flex:1;min-width:180px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--panel);color:var(--ink);}
+  .search:focus{outline:1px solid var(--wine);}
+  .chip{padding:4px 11px;border-radius:12px;font-size:12px;border:1px solid var(--border);background:var(--panel);color:var(--ink-soft);}
+  .chip.on{background:var(--ink);color:var(--panel);border-color:var(--ink);}
+  .chip-row{display:flex;gap:6px;flex-wrap:wrap;}
+
+  /* Dashboard */
+  .stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:30px;}
+  .stat-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;}
+  .stat-card .num{font-family:'Fraunces',serif;font-size:32px;font-weight:600;}
+  .stat-card .label{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+  .section-title{font-size:12px;letter-spacing:.02em;color:var(--ink-soft);text-transform:none;margin:26px 0 12px;font-weight:500;border-bottom:1px solid var(--border);padding-bottom:6px;}
+  .bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:12.5px;}
+  .bar-label{width:110px;flex:0 0 110px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .bar-track{flex:1;background:var(--paper-dark);height:8px;border-radius:4px;overflow:hidden;}
+  .bar-fill{height:100%;border-radius:4px;}
+  .bar-val{width:22px;text-align:right;font-family:'IBM Plex Mono',monospace;color:var(--ink-soft);}
+  .empty-note{color:var(--ink-soft);font-size:13px;font-style:italic;}
+
+  /* Cards */
+  .card-list{display:flex;flex-direction:column;gap:10px;}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);}
+  .card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
+  .card-title{font-family:'Fraunces',serif;font-size:16px;font-weight:600;}
+  .card-meta{font-size:12px;color:var(--ink-soft);margin-top:3px;}
+  .badge{font-size:10.5px;padding:2px 7px;border-radius:10px;font-weight:500;letter-spacing:.02em;}
+  .badge.manuscrites{background:#E3D7C4;color:var(--ochre);}
+  .badge.imprimees{background:#F0DAD6;color:var(--wine);}
+  .badge.instrument{background:#DAE1E4;color:var(--blue);}
+  .badge.generaux{background:#DDE4DA;color:var(--green);}
+  .badge.specialises{background:#E6DAE2;color:var(--plum);}
+
+  /* Bibliographie */
+  .biblio-group{margin-bottom:24px;}
+  .biblio-group h3{font-size:14px;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--border);}
+  .biblio-entry{font-size:13px;margin-bottom:7px;padding-left:1.4em;text-indent:-1.4em;}
+  .card-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:9px;}
+  .tag-chip{font-size:11px;padding:2px 8px;border-radius:10px;color:#fff;}
+  .card-actions{display:flex;gap:8px;margin-top:11px;}
+  .card-notes{margin-top:8px;font-size:12.5px;color:var(--ink-soft);white-space:pre-wrap;}
+  .fiche-flag{font-size:11px;color:var(--green);margin-top:6px;}
+  .fiche-flag.missing{color:var(--ink-soft);}
+
+  .fiche-body{font-size:13px;margin-top:8px;}
+  .fiche-field{margin-bottom:9px;}
+  .fiche-field .flabel{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--gold);font-weight:600;margin-bottom:2px;}
+  .fiche-field .fval{white-space:pre-wrap;}
+
+  /* Modal */
+  .overlay{position:fixed;inset:0;background:rgba(42,32,24,0.45);display:none;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto;z-index:50;}
+  .overlay.open{display:flex;}
+  .modal{background:var(--panel);border-radius:var(--radius);max-width:560px;width:100%;padding:26px 28px;border:1px solid var(--border);}
+  .modal h3{font-size:19px;margin-bottom:16px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;}
+  .field input,.field textarea,.field select{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--paper);color:var(--ink);}
+  .field textarea{resize:vertical;min-height:60px;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .tag-picker{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+  .tag-opt{font-size:11.5px;padding:3px 10px;border-radius:10px;border:1px solid var(--border);color:var(--ink-soft);background:var(--paper);}
+  .tag-opt.on{color:#fff;border-color:transparent;}
+  .new-tag-row{display:flex;gap:6px;margin-top:8px;}
+  .new-tag-row input{flex:1;padding:6px 9px;font-size:12.5px;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px;}
+
+  .empty-state{text-align:center;padding:50px 20px;color:var(--ink-soft);}
+  .empty-state h3{color:var(--ink-soft);font-size:16px;margin-bottom:6px;}
+
+  #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--panel);padding:9px 18px;border-radius:var(--radius);font-size:13px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:100;}
+  #toast.show{opacity:1;}
+
+  #loading{position:fixed;inset:0;background:var(--paper);display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;color:var(--ink-soft);z-index:200;}
+
+  @media(max-width:760px){
+    #app{flex-direction:column;}
+    #sidebar{width:100%;flex:none;}
+    #main{padding:22px 18px;}
+    .stat-grid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div id="loading">Ouverture du cabinet…</div>
+
+<div id="app" style="display:none;">
+  <div id="sidebar">
+    <div class="brand">
+      <h1>Cabinet de recherche</h1>
+      <div class="sub">Les débits de boisson en Flandre, XVIIe siècle</div>
+    </div>
+    <nav>
+      <div class="nav-item active" data-view="dashboard">Tableau de bord</div>
+      <div class="nav-item" data-view="sources">Sources <span class="count" id="count-sources"></span></div>
+      <div class="nav-item" data-view="fiches">Fiches de lecture <span class="count" id="count-fiches"></span></div>
+      <div class="nav-item" data-view="biblio">Bibliographie</div>
+    </nav>
+    <div class="tag-legend">
+      <h3>Thèmes</h3>
+      <div class="legend-list" id="legend-list"></div>
+      <div class="new-tag-row" style="margin-top:10px;">
+        <input id="sidebar-new-tag" placeholder="Nouveau thème…">
+        <button class="btn secondary small" id="sidebar-add-tag" type="button">Ajouter</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="main">
+
+    <!-- DASHBOARD -->
+    <div class="view active" data-view="dashboard">
+      <div class="view-header">
+        <div>
+          <h2>Tableau de bord</h2>
+          <div class="desc">Avancement de la collecte et du dépouillement pour le mémoire.</div>
+        </div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="num" id="stat-sources">0</div><div class="label">sources répertoriées</div></div>
+        <div class="stat-card"><div class="num" id="stat-fiches">0</div><div class="label">fiches de lecture rédigées</div></div>
+        <div class="stat-card"><div class="num" id="stat-missing">0</div><div class="label">sources sans fiche</div></div>
+      </div>
+      <div class="section-title">Répartition par thème</div>
+      <div id="theme-bars"></div>
+      <div class="section-title">Sources à traiter en priorité</div>
+      <div id="missing-list" class="card-list"></div>
+    </div>
+
+    <!-- SOURCES -->
+    <div class="view" data-view="sources">
+      <div class="view-header">
+        <div>
+          <h2>Sources</h2>
+          <div class="desc">Sources et ouvrages mobilisés pour le mémoire, classés par catégorie bibliographique.</div>
+        </div>
+        <button class="btn" id="btn-add-source">+ Ajouter une source</button>
+      </div>
+      <div class="toolbar">
+        <input class="search" id="search-sources" placeholder="Rechercher par auteur, titre, cote…">
+      </div>
+      <div class="chip-row" id="tagfilter-sources" style="margin-bottom:16px;"></div>
+      <div class="card-list" id="list-sources"></div>
+    </div>
+
+    <!-- FICHES -->
+    <div class="view" data-view="fiches">
+      <div class="view-header">
+        <div>
+          <h2>Fiches de lecture</h2>
+          <div class="desc">Fiches générées à partir de vos sources : problématique, thèse, citations, notes critiques.</div>
+        </div>
+      </div>
+      <div class="toolbar">
+        <input class="search" id="search-fiches" placeholder="Rechercher dans les fiches…">
+      </div>
+      <div class="chip-row" id="tagfilter-fiches" style="margin-bottom:16px;"></div>
+      <div class="card-list" id="list-fiches"></div>
+    </div>
+
+    <!-- BIBLIOGRAPHIE -->
+    <div class="view" data-view="biblio">
+      <div class="view-header">
+        <div>
+          <h2>Bibliographie</h2>
+          <div class="desc">Classée par ordre alphabétique dans chaque catégorie, générée automatiquement à partir de vos sources.</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn" id="btn-download-biblio-rtf">Télécharger pour Word (.rtf)</button>
+          <button class="btn secondary" id="btn-download-biblio">Télécharger (.txt)</button>
+        </div>
+      </div>
+      <div id="biblio-content"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Source modal -->
+<div class="overlay" id="overlay-source">
+  <div class="modal">
+    <h3 id="source-modal-title">Ajouter une source</h3>
+    <input type="hidden" id="source-id">
+    <div class="row2">
+      <div class="field">
+        <label>Catégorie bibliographique</label>
+        <select id="source-type">
+          <option value="manuscrites">Sources manuscrites</option>
+          <option value="imprimees">Sources imprimées</option>
+          <option value="instrument">Instrument de travail</option>
+          <option value="generaux">Ouvrages généraux</option>
+          <option value="specialises">Ouvrages spécialisés</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Date</label>
+        <input id="source-date" placeholder="ex. 1660, ou 2005">
+      </div>
+    </div>
+    <div class="field">
+      <label>Rechercher par ISBN (optionnel)</label>
+      <div style="display:flex;gap:8px;">
+        <input id="source-isbn" placeholder="ex. 9782213658224" style="flex:1;">
+        <button class="btn secondary small" id="source-isbn-lookup" type="button">Rechercher</button>
+      </div>
+      <div id="source-isbn-status" style="font-size:11.5px;color:var(--ink-soft);margin-top:5px;"></div>
+    </div>
+    <div class="field">
+      <label>Auteur</label>
+      <input id="source-auteur" placeholder="ex. Muchembled, R.">
+    </div>
+    <div class="field">
+      <label>Titre</label>
+      <input id="source-titre" placeholder="ex. La violence au village, ou intitulé du fonds d'archives">
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Nature</label>
+        <select id="source-nature">
+          <option value="ouvrage">Ouvrage</option>
+          <option value="article">Article</option>
+        </select>
+      </div>
+      <div class="field">
+        <label id="label-page">Page(s) (optionnel)</label>
+        <input id="source-page" placeholder="ex. 45-52">
+      </div>
+    </div>
+    <div class="field" id="field-editeur">
+      <label>Maison d'édition</label>
+      <input id="source-editeur" placeholder="ex. Fayard">
+    </div>
+    <div class="field" id="field-ville">
+      <label>Ville d'édition</label>
+      <input id="source-ville" placeholder="ex. Paris">
+    </div>
+    <div class="row2" id="field-article" style="display:none;">
+      <div class="field">
+        <label>Journal / Revue</label>
+        <input id="source-revue" placeholder="ex. Revue du Nord">
+      </div>
+      <div class="field">
+        <label>Numéro</label>
+        <input id="source-numero" placeholder="ex. 342">
+      </div>
+    </div>
+    <div class="field">
+      <label>Cote / référence (optionnel)</label>
+      <input id="source-cote" placeholder="ex. AD Nord, B 1234">
+    </div>
+    <div class="field">
+      <label>Notes (optionnel)</label>
+      <textarea id="source-notes" placeholder="Contexte, contenu du fonds, remarques…"></textarea>
+    </div>
+    <div class="field">
+      <label>Thèmes</label>
+      <div class="tag-picker" id="source-tag-picker"></div>
+      <div class="new-tag-row">
+        <input id="source-new-tag" placeholder="Nouveau thème…">
+        <button class="btn secondary small" id="source-add-tag">Ajouter</button>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn secondary" id="source-cancel">Annuler</button>
+      <button class="btn" id="source-save">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Fiche modal -->
+<div class="overlay" id="overlay-fiche">
+  <div class="modal">
+    <h3 id="fiche-modal-title">Générer une fiche de lecture</h3>
+    <input type="hidden" id="fiche-id">
+    <input type="hidden" id="fiche-source-id">
+    <div id="fiche-source-ref" style="font-size:12.5px;color:var(--ink-soft);margin-bottom:14px;"></div>
+    <div class="field">
+      <label>Problématique de l'auteur</label>
+      <textarea id="fiche-probleme" placeholder="Quelle question l'auteur/la source pose-t-il ?"></textarea>
+    </div>
+    <div class="field">
+      <label>Thèse / argument principal</label>
+      <textarea id="fiche-these"></textarea>
+    </div>
+    <div class="field">
+      <label>Citations clés (une par ligne)</label>
+      <textarea id="fiche-citations" placeholder="« ... »&#10;« ... »"></textarea>
+    </div>
+    <div class="field">
+      <label>Notes critiques</label>
+      <textarea id="fiche-critique" placeholder="Limites, biais, apport pour votre corpus…"></textarea>
+    </div>
+    <div class="field">
+      <label>Lien avec votre sujet</label>
+      <textarea id="fiche-lien" placeholder="Comment cette source nourrit votre mémoire ?"></textarea>
+    </div>
+    <div class="field">
+      <label>Thèmes</label>
+      <div class="tag-picker" id="fiche-tag-picker"></div>
+      <div class="new-tag-row">
+        <input id="fiche-new-tag" placeholder="Nouveau thème…">
+        <button class="btn secondary small" id="fiche-add-tag" type="button">Ajouter</button>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn secondary" id="fiche-cancel">Annuler</button>
+      <button class="btn" id="fiche-save">Enregistrer la fiche</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'cabinet-recherche-data';
+const PALETTE = ['#7B2D26','#A9822F','#445940','#3F5566','#6B3F5C','#8C6A2F'];
+
+let data = { sources: [], fiches: [], tags: [] };
+let activeView = 'dashboard';
+let sourceTagFilter = new Set();
+let ficheTagFilter = new Set();
+let pickerTagsSource = new Set();
+let pickerTagsFiche = new Set();
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+const CATEGORIES = [
+  {key:'manuscrites', label:'Sources manuscrites'},
+  {key:'imprimees', label:'Sources imprimées'},
+  {key:'instrument', label:'Instrument de travail'},
+  {key:'generaux', label:'Ouvrages généraux'},
+  {key:'specialises', label:'Ouvrages spécialisés'},
+];
+function categoryLabel(key){ const c = CATEGORIES.find(c=>c.key===key); return c? c.label : key; }
+
+function defaultData(){
+  const tags = [
+    {id:uid(), name:'violence', color:PALETTE[0]},
+    {id:uid(), name:'sociabilité', color:PALETTE[1]},
+    {id:uid(), name:'clergé', color:PALETTE[2]},
+    {id:uid(), name:'vengeance', color:PALETTE[3]},
+    {id:uid(), name:'duel', color:PALETTE[4]},
+    {id:uid(), name:'justice', color:PALETTE[5]},
+  ];
+  const byName = n => tags.find(t=>t.name===n).id;
+  const sources = [
+    {id:uid(), type:'specialises', auteur:'Muchembled, R.', titre:'(à compléter — ouvrage sur la violence en société d’Ancien Régime)', date:'', cote:'', notes:'', tags:[byName('violence')]},
+    {id:uid(), type:'specialises', auteur:'Lecoutre, M.', titre:'(à compléter)', date:'', cote:'', notes:'', tags:[byName('sociabilité')]},
+    {id:uid(), type:'specialises', auteur:'Garnot, B.', titre:'(à compléter)', date:'', cote:'', notes:'', tags:[byName('justice')]},
+    {id:uid(), type:'specialises', auteur:'Farge, A.', titre:'(à compléter)', date:'', cote:'', notes:'', tags:[byName('sociabilité')]},
+    {id:uid(), type:'manuscrites', auteur:'Archives Départementales du Nord', titre:'Fonds à dépouiller — débits de boisson, procédures', date:'XVIIe s.', cote:'', notes:'Sources déjà mobilisées pour l’article sur la violence dans les débits de boisson flamands.', tags:[byName('violence'), byName('duel')]},
+  ];
+  return {sources, fiches:[], tags};
+}
+
+async function loadData(){
+  try{
+    const res = await window.storage.get(STORAGE_KEY, false);
+    if(res && res.value){
+      data = JSON.parse(res.value);
+    } else {
+      data = defaultData();
+      await saveData();
+    }
+  }catch(e){
+    data = defaultData();
+    try{ await saveData(); }catch(e2){ console.error('Save failed', e2); }
+  }
+}
+
+let saveTimer = null;
+async function saveData(){
+  try{
+    const res = await window.storage.set(STORAGE_KEY, JSON.stringify(data), false);
+    if(!res) console.error('Storage set returned null');
+  }catch(e){
+    console.error('Storage error', e);
+    showToast('Échec de la sauvegarde — réessayez.');
+  }
+}
+function scheduleSave(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveData, 250);
+}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 1800);
+}
+
+function tagById(id){ return data.tags.find(t=>t.id===id); }
+
+/* ---------- Rendering ---------- */
+
+function renderAll(){
+  renderLegend();
+  renderCounts();
+  renderDashboard();
+  renderSources();
+  renderFiches();
+  renderBibliographie();
+}
+
+function renderLegend(){
+  const el = document.getElementById('legend-list');
+  el.innerHTML = '';
+  if(data.tags.length===0){ el.innerHTML = '<div class="empty-note">Aucun thème.</div>'; }
+  data.tags.forEach(tag=>{
+    const n = data.sources.filter(s=>s.tags.includes(tag.id)).length + data.fiches.filter(f=>f.tags.includes(tag.id)).length;
+    const row = document.createElement('div');
+    row.className = 'legend-row';
+    row.innerHTML = `<span class="dot" style="background:${tag.color}"></span><span class="legend-name">${escapeHtml(tag.name)} (${n})</span><span class="legend-del" data-del-tag="${tag.id}" title="Supprimer ce thème">✕</span>`;
+    el.appendChild(row);
+  });
+}
+
+document.getElementById('sidebar-add-tag').onclick = async ()=>{
+  const input = document.getElementById('sidebar-new-tag');
+  const name = input.value.trim();
+  if(!name) return;
+  const existing = data.tags.find(t=>t.name.toLowerCase()===name.toLowerCase());
+  if(!existing){
+    data.tags.push({id:uid(), name, color: PALETTE[data.tags.length % PALETTE.length]});
+    input.value = '';
+    await saveData();
+    renderAll();
+    showToast('Thème ajouté.');
+  } else {
+    showToast('Ce thème existe déjà.');
+  }
+};
+
+document.getElementById('legend-list').addEventListener('click', async (e)=>{
+  const tagId = e.target.dataset.delTag;
+  if(!tagId) return;
+  const tag = tagById(tagId);
+  if(!tag) return;
+  if(confirm(`Supprimer le thème "${tag.name}" ? Il sera retiré de toutes les sources et fiches.`)){
+    data.tags = data.tags.filter(t=>t.id!==tagId);
+    data.sources.forEach(s=> s.tags = s.tags.filter(id=>id!==tagId));
+    data.fiches.forEach(f=> f.tags = f.tags.filter(id=>id!==tagId));
+    await saveData();
+    renderAll();
+    showToast('Thème supprimé.');
+  }
+});
+
+function renderCounts(){
+  document.getElementById('count-sources').textContent = data.sources.length;
+  document.getElementById('count-fiches').textContent = data.fiches.length;
+}
+
+function renderDashboard(){
+  document.getElementById('stat-sources').textContent = data.sources.length;
+  document.getElementById('stat-fiches').textContent = data.fiches.length;
+  const treated = new Set(data.fiches.map(f=>f.sourceId));
+  const missing = data.sources.filter(s=>!treated.has(s.id));
+  document.getElementById('stat-missing').textContent = missing.length;
+
+  const bars = document.getElementById('theme-bars');
+  bars.innerHTML = '';
+  const max = Math.max(1, ...data.tags.map(t=> data.sources.filter(s=>s.tags.includes(t.id)).length + data.fiches.filter(f=>f.tags.includes(t.id)).length ));
+  if(data.tags.length===0){ bars.innerHTML = '<div class="empty-note">Aucun thème pour le moment.</div>'; }
+  data.tags.forEach(tag=>{
+    const n = data.sources.filter(s=>s.tags.includes(tag.id)).length + data.fiches.filter(f=>f.tags.includes(tag.id)).length;
+    const row = document.createElement('div');
+    row.className = 'bar-row';
+    row.innerHTML = `<div class="bar-label">${tag.name}</div><div class="bar-track"><div class="bar-fill" style="width:${(n/max*100)}%;background:${tag.color}"></div></div><div class="bar-val">${n}</div>`;
+    bars.appendChild(row);
+  });
+
+  const missingList = document.getElementById('missing-list');
+  missingList.innerHTML = '';
+  if(missing.length===0){
+    missingList.innerHTML = '<div class="empty-note">Toutes les sources répertoriées ont une fiche de lecture.</div>';
+  } else {
+    missing.slice(0,5).forEach(s=>{
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `<div class="card-top"><div><div class="card-title">${escapeHtml(sourceHeading(s))}</div><div class="card-meta">${s.date? escapeHtml(s.date):''}</div></div><span class="badge ${s.type}">${categoryLabel(s.type)}</span></div>
+      <div class="card-actions"><button class="btn small" data-gen-fiche="${s.id}">Générer une fiche</button></div>`;
+      missingList.appendChild(card);
+    });
+  }
+}
+
+function matchesSearch(str, q){ return str.toLowerCase().includes(q.toLowerCase()); }
+
+function renderSources(){
+  renderTagFilterRow('tagfilter-sources', sourceTagFilter, renderSources);
+  const q = document.getElementById('search-sources').value.trim();
+  const list = document.getElementById('list-sources');
+  list.innerHTML = '';
+  let items = data.sources.slice().sort((a,b)=> (a.auteur||'').localeCompare(b.auteur||''));
+  if(q) items = items.filter(s => matchesSearch([s.auteur,s.titre,s.cote,s.notes].join(' '), q));
+  if(sourceTagFilter.size) items = items.filter(s => s.tags.some(t=>sourceTagFilter.has(t)));
+
+  if(items.length===0){
+    list.innerHTML = `<div class="empty-state"><h3>Aucune source</h3><div>Ajoutez votre première source pour commencer à construire votre corpus.</div></div>`;
+    return;
+  }
+
+  items.forEach(s=>{
+    const hasFiche = data.fiches.some(f=>f.sourceId===s.id);
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="card-top">
+        <div><div class="card-title">${escapeHtml(sourceHeading(s))}</div><div class="card-meta">${s.date? escapeHtml(s.date):''}${s.cote? ' · '+escapeHtml(s.cote):''}</div></div>
+        <span class="badge ${s.type}">${categoryLabel(s.type)}</span>
+      </div>
+      ${s.notes? `<div class="card-notes">${escapeHtml(s.notes)}</div>`:''}
+      <div class="card-tags">${s.tags.map(id=>tagChip(id)).join('')}</div>
+      <div class="fiche-flag ${hasFiche?'':'missing'}">${hasFiche? '✓ Fiche de lecture rédigée' : 'Pas encore de fiche'}</div>
+      <div class="card-actions">
+        <button class="btn small" data-gen-fiche="${s.id}">${hasFiche? 'Voir/éditer la fiche':'Générer une fiche'}</button>
+        <button class="btn secondary small" data-edit-source="${s.id}">Modifier</button>
+        <button class="btn secondary small" data-del-source="${s.id}">Supprimer</button>
+      </div>`;
+    list.appendChild(card);
+  });
+}
+
+function renderFiches(){
+  renderTagFilterRow('tagfilter-fiches', ficheTagFilter, renderFiches);
+  const q = document.getElementById('search-fiches').value.trim();
+  const list = document.getElementById('list-fiches');
+  list.innerHTML = '';
+  let items = data.fiches.slice();
+  if(q) items = items.filter(f => matchesSearch([f.probleme,f.these,f.citations,f.critique,f.lien].join(' '), q));
+  if(ficheTagFilter.size) items = items.filter(f => f.tags.some(t=>ficheTagFilter.has(t)));
+
+  if(items.length===0){
+    list.innerHTML = `<div class="empty-state"><h3>Aucune fiche de lecture</h3><div>Générez-en une depuis l'onglet Sources.</div></div>`;
+    return;
+  }
+
+  items.forEach(f=>{
+    const src = data.sources.find(s=>s.id===f.sourceId);
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="card-top">
+        <div><div class="card-title">${src? escapeHtml(sourceHeading(src)) : 'Source supprimée'}</div></div>
+      </div>
+      <div class="fiche-body">
+        ${ficheField('Problématique', f.probleme)}
+        ${ficheField('Thèse', f.these)}
+        ${ficheField('Citations clés', f.citations)}
+        ${ficheField('Notes critiques', f.critique)}
+        ${ficheField('Lien avec le sujet', f.lien)}
+      </div>
+      <div class="card-tags">${f.tags.map(id=>tagChip(id)).join('')}</div>
+      <div class="card-actions">
+        <button class="btn secondary small" data-edit-fiche="${f.id}">Modifier</button>
+        <button class="btn secondary small" data-del-fiche="${f.id}">Supprimer</button>
+      </div>`;
+    list.appendChild(card);
+  });
+}
+
+function formatOneAuthor(a){
+  a = a.trim();
+  if(!a) return '';
+  const idx = a.indexOf(',');
+  if(idx !== -1){
+    const nom = a.slice(0, idx).trim().toUpperCase();
+    const rest = a.slice(idx+1).trim();
+    return rest ? `${nom}, ${rest}` : nom;
+  }
+  const parts = a.split(/\s+/).filter(Boolean);
+  if(parts.length <= 1) return a.toUpperCase();
+  const nom = parts[parts.length-1].toUpperCase();
+  const prenom = parts.slice(0,-1).join(' ');
+  return `${nom}, ${prenom}`;
+}
+
+function citeAuthor(s){
+  const raw = (s.auteur || '').trim();
+  if(!raw) return '(auteur inconnu)';
+  return raw.split(';').map(formatOneAuthor).filter(Boolean).join(' ; ');
+}
+
+function biblioEntryHtml(s){
+  if(s.type === 'manuscrites'){
+    const parts = [escapeHtml(citeAuthor(s))];
+    if(s.titre) parts.push(escapeHtml(s.titre));
+    if(s.cote) parts.push(escapeHtml(s.cote));
+    if(s.date) parts.push(escapeHtml(s.date));
+    return parts.join(', ') + '.';
+  }
+  if(s.nature === 'article'){
+    const bits = [escapeHtml(citeAuthor(s))];
+    if(s.titre) bits.push(`« ${escapeHtml(s.titre)} »`);
+    if(s.revue) bits.push(escapeHtml(s.revue));
+    if(s.numero) bits.push('n° '+escapeHtml(s.numero));
+    if(s.date) bits.push(escapeHtml(s.date));
+    if(s.page) bits.push('p. '+escapeHtml(s.page));
+    return bits.join(', ') + '.';
+  }
+  const bits = [escapeHtml(citeAuthor(s))];
+  if(s.titre) bits.push(`<em>${escapeHtml(s.titre)}</em>`);
+  if(s.editeur) bits.push(escapeHtml(s.editeur));
+  if(s.ville) bits.push(escapeHtml(s.ville));
+  if(s.date) bits.push(escapeHtml(s.date));
+  if(s.page) bits.push(escapeHtml(s.page)+' p.');
+  return bits.join(', ') + '.';
+}
+
+function biblioEntryText(s){
+  if(s.type === 'manuscrites'){
+    const parts = [citeAuthor(s)];
+    if(s.titre) parts.push(s.titre);
+    if(s.cote) parts.push(s.cote);
+    if(s.date) parts.push(s.date);
+    return parts.join(', ') + '.';
+  }
+  if(s.nature === 'article'){
+    const bits = [citeAuthor(s)];
+    if(s.titre) bits.push(`"${s.titre}"`);
+    if(s.revue) bits.push(s.revue);
+    if(s.numero) bits.push('n° '+s.numero);
+    if(s.date) bits.push(s.date);
+    if(s.page) bits.push('p. '+s.page);
+    return bits.join(', ') + '.';
+  }
+  const bits = [citeAuthor(s)];
+  if(s.titre) bits.push(s.titre);
+  if(s.editeur) bits.push(s.editeur);
+  if(s.ville) bits.push(s.ville);
+  if(s.date) bits.push(s.date);
+  if(s.page) bits.push(s.page+' p.');
+  return bits.join(', ') + '.';
+}
+
+function buildBibliographie(){
+  return CATEGORIES.map(cat=>{
+    const items = data.sources.filter(s=>s.type===cat.key).sort((a,b)=>(a.auteur||'').localeCompare(b.auteur||''));
+    return {label:cat.label, items};
+  }).filter(g=>g.items.length>0);
+}
+
+function renderBibliographie(){
+  const el = document.getElementById('biblio-content');
+  const groups = buildBibliographie();
+  if(groups.length===0){
+    el.innerHTML = `<div class="empty-state"><h3>Aucune source classée</h3><div>Ajoutez des sources depuis l'onglet Sources pour générer la bibliographie.</div></div>`;
+    return;
+  }
+  el.innerHTML = groups.map(g => `
+    <div class="biblio-group">
+      <h3>${escapeHtml(g.label)}</h3>
+      ${g.items.map(s=>`<div class="biblio-entry">${biblioEntryHtml(s)}</div>`).join('')}
+    </div>`).join('');
+}
+
+function toRtf(str){
+  if(!str) return '';
+  let out = '';
+  for(const ch of String(str)){
+    const code = ch.codePointAt(0);
+    if(ch === '\\' || ch === '{' || ch === '}'){
+      out += '\\' + ch;
+    } else if(code < 128){
+      out += ch;
+    } else {
+      out += `\\u${code}?`;
+    }
+  }
+  return out;
+}
+
+function biblioEntryRtf(s){
+  if(s.type === 'manuscrites'){
+    const parts = [citeAuthor(s)];
+    if(s.titre) parts.push(s.titre);
+    if(s.cote) parts.push(s.cote);
+    if(s.date) parts.push(s.date);
+    return toRtf(parts.join(', ') + '.');
+  }
+  if(s.nature === 'article'){
+    const bits = [toRtf(citeAuthor(s))];
+    if(s.titre) bits.push(toRtf(`« ${s.titre} »`));
+    if(s.revue) bits.push(toRtf(s.revue));
+    if(s.numero) bits.push(toRtf('n° '+s.numero));
+    if(s.date) bits.push(toRtf(s.date));
+    if(s.page) bits.push(toRtf('p. '+s.page));
+    return bits.join(', ') + '.';
+  }
+  const bits = [toRtf(citeAuthor(s))];
+  if(s.titre) bits.push(`{\\i ${toRtf(s.titre)}}`);
+  if(s.editeur) bits.push(toRtf(s.editeur));
+  if(s.ville) bits.push(toRtf(s.ville));
+  if(s.date) bits.push(toRtf(s.date));
+  if(s.page) bits.push(toRtf(s.page+' p.'));
+  return bits.join(', ') + '.';
+}
+
+function downloadBlob(content, filename, mime){
+  const blob = new Blob([content], {type:mime});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById('btn-download-biblio-rtf').onclick = ()=>{
+  const groups = buildBibliographie();
+  if(groups.length===0){ showToast('Aucune source à exporter.'); return; }
+  let body = `{\\b ${toRtf('BIBLIOGRAPHIE')}}\\par\n${toRtf('Les débits de boisson en Flandre, XVIIe siècle')}\\par\\par\n`;
+  groups.forEach(g=>{
+    body += `{\\b ${toRtf(g.label.toUpperCase())}}\\par\n`;
+    g.items.forEach(s=> body += biblioEntryRtf(s) + '\\par\n');
+    body += '\\par\n';
+  });
+  const rtf = `{\\rtf1\\ansi\\deff0{\\fonttbl{\\f0 Times New Roman;}}\\f0\\fs24\n${body}}`;
+  downloadBlob(rtf, 'bibliographie.rtf', 'application/rtf');
+  showToast('Bibliographie téléchargée (Word).');
+};
+
+document.getElementById('btn-download-biblio').onclick = ()=>{
+  const groups = buildBibliographie();
+  if(groups.length===0){ showToast('Aucune source à exporter.'); return; }
+  let text = 'BIBLIOGRAPHIE\nLes débits de boisson en Flandre, XVIIe siècle\n\n';
+  groups.forEach(g=>{
+    text += g.label.toUpperCase() + '\n';
+    g.items.forEach(s=> text += biblioEntryText(s) + '\n');
+    text += '\n';
+  });
+  downloadBlob(text, 'bibliographie.txt', 'text/plain;charset=utf-8');
+  showToast('Bibliographie téléchargée.');
+};
+
+function ficheField(label, val){
+  if(!val) return '';
+  return `<div class="fiche-field"><div class="flabel">${label}</div><div class="fval">${escapeHtml(val)}</div></div>`;
+}
+
+function sourceHeading(s){
+  const auteur = s.auteur || '(auteur inconnu)';
+  return s.titre ? `${auteur} — ${s.titre}` : auteur;
+}
+
+function tagChip(id){
+  const t = tagById(id);
+  if(!t) return '';
+  return `<span class="tag-chip" style="background:${t.color}">${escapeHtml(t.name)}</span>`;
+}
+
+function renderTagFilterRow(elId, filterSet, rerenderFn){
+  const el = document.getElementById(elId);
+  el.innerHTML = '';
+  data.tags.forEach(tag=>{
+    const chip = document.createElement('span');
+    chip.className = 'chip' + (filterSet.has(tag.id) ? ' on':'');
+    chip.style.borderColor = filterSet.has(tag.id) ? tag.color : '';
+    chip.style.background = filterSet.has(tag.id) ? tag.color : '';
+    chip.style.color = filterSet.has(tag.id) ? '#fff' : '';
+    chip.textContent = tag.name;
+    chip.onclick = ()=>{
+      if(filterSet.has(tag.id)) filterSet.delete(tag.id); else filterSet.add(tag.id);
+      rerenderFn();
+    };
+    el.appendChild(chip);
+  });
+}
+
+function escapeHtml(str){
+  if(!str) return '';
+  return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+/* ---------- Navigation ---------- */
+
+document.querySelectorAll('.nav-item').forEach(el=>{
+  el.onclick = ()=>{
+    activeView = el.dataset.view;
+    document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active', x===el));
+    document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active', v.dataset.view===activeView));
+  };
+});
+
+document.getElementById('search-sources').oninput = renderSources;
+document.getElementById('search-fiches').oninput = renderFiches;
+
+/* ---------- Tag picker (shared by both modals) ---------- */
+
+function renderTagPicker(elId, pickerSet){
+  const el = document.getElementById(elId);
+  el.innerHTML = '';
+  data.tags.forEach(tag=>{
+    const opt = document.createElement('span');
+    opt.className = 'tag-opt' + (pickerSet.has(tag.id)?' on':'');
+    opt.style.background = pickerSet.has(tag.id) ? tag.color : '';
+    opt.style.borderColor = pickerSet.has(tag.id) ? tag.color : '';
+    opt.textContent = tag.name;
+    opt.onclick = ()=>{
+      if(pickerSet.has(tag.id)) pickerSet.delete(tag.id); else pickerSet.add(tag.id);
+      renderTagPicker(elId, pickerSet);
+    };
+    el.appendChild(opt);
+  });
+}
+
+document.getElementById('source-add-tag').onclick = ()=>{
+  const input = document.getElementById('source-new-tag');
+  const name = input.value.trim();
+  if(!name) return;
+  const existing = data.tags.find(t=>t.name.toLowerCase()===name.toLowerCase());
+  const tag = existing || {id:uid(), name, color: PALETTE[data.tags.length % PALETTE.length]};
+  if(!existing) data.tags.push(tag);
+  pickerTagsSource.add(tag.id);
+  input.value = '';
+  renderTagPicker('source-tag-picker', pickerTagsSource);
+};
+
+document.getElementById('fiche-add-tag').onclick = ()=>{
+  const input = document.getElementById('fiche-new-tag');
+  const name = input.value.trim();
+  if(!name) return;
+  const existing = data.tags.find(t=>t.name.toLowerCase()===name.toLowerCase());
+  const tag = existing || {id:uid(), name, color: PALETTE[data.tags.length % PALETTE.length]};
+  if(!existing) data.tags.push(tag);
+  pickerTagsFiche.add(tag.id);
+  input.value = '';
+  renderTagPicker('fiche-tag-picker', pickerTagsFiche);
+};
+
+/* ---------- Source modal ---------- */
+
+const overlaySource = document.getElementById('overlay-source');
+
+function openSourceModal(source){
+  document.getElementById('source-modal-title').textContent = source? 'Modifier la source' : 'Ajouter une source';
+  document.getElementById('source-id').value = source? source.id : '';
+  document.getElementById('source-type').value = source? source.type : 'manuscrites';
+  document.getElementById('source-date').value = source? source.date : '';
+  document.getElementById('source-auteur').value = source? source.auteur : '';
+  document.getElementById('source-titre').value = source? source.titre : '';
+  document.getElementById('source-cote').value = source? source.cote : '';
+  document.getElementById('source-notes').value = source? source.notes : '';
+  document.getElementById('source-nature').value = source? (source.nature||'ouvrage') : 'ouvrage';
+  document.getElementById('source-page').value = source? (source.page||'') : '';
+  document.getElementById('source-editeur').value = source? (source.editeur||'') : '';
+  document.getElementById('source-ville').value = source? (source.ville||'') : '';
+  document.getElementById('source-revue').value = source? (source.revue||'') : '';
+  document.getElementById('source-numero').value = source? (source.numero||'') : '';
+  updateNatureFields();
+  document.getElementById('source-isbn').value = '';
+  document.getElementById('source-isbn-status').textContent = '';
+  pickerTagsSource = new Set(source? source.tags : []);
+  renderTagPicker('source-tag-picker', pickerTagsSource);
+  overlaySource.classList.add('open');
+}
+
+document.getElementById('source-nature').onchange = updateNatureFields;
+function updateNatureFields(){
+  const isArticle = document.getElementById('source-nature').value === 'article';
+  document.getElementById('field-editeur').style.display = isArticle ? 'none' : '';
+  document.getElementById('field-ville').style.display = isArticle ? 'none' : '';
+  document.getElementById('field-article').style.display = isArticle ? '' : 'none';
+  document.getElementById('label-page').textContent = isArticle ? 'Page(s) citées (optionnel)' : 'Nombre de pages (optionnel)';
+  document.getElementById('source-page').placeholder = isArticle ? 'ex. 45-52' : 'ex. 320';
+}
+
+document.getElementById('btn-add-source').onclick = ()=> openSourceModal(null);
+document.getElementById('source-cancel').onclick = ()=> overlaySource.classList.remove('open');
+
+document.getElementById('source-isbn-lookup').onclick = async ()=>{
+  const statusEl = document.getElementById('source-isbn-status');
+  const raw = document.getElementById('source-isbn').value.trim();
+  const isbn = raw.replace(/[^0-9Xx]/g, '');
+  if(!isbn){ statusEl.textContent = 'Saisissez un ISBN.'; return; }
+  statusEl.textContent = 'Recherche en cours…';
+  try{
+    const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
+    if(!res.ok) throw new Error('network');
+    const json = await res.json();
+    const info = json.items && json.items[0] && json.items[0].volumeInfo;
+    if(!info){
+      statusEl.textContent = 'Aucun ouvrage trouvé pour cet ISBN — saisissez les informations manuellement.';
+      return;
+    }
+    if(info.authors) document.getElementById('source-auteur').value = info.authors.join(' ; ');
+    if(info.title) document.getElementById('source-titre').value = info.title + (info.subtitle? ' : '+info.subtitle : '');
+    if(info.publishedDate) document.getElementById('source-date').value = info.publishedDate.slice(0,4);
+    if(info.publisher) document.getElementById('source-editeur').value = info.publisher;
+    if(info.pageCount) document.getElementById('source-page').value = String(info.pageCount);
+    document.getElementById('source-nature').value = 'ouvrage';
+    updateNatureFields();
+    statusEl.textContent = "Champs pré-remplis — la ville d'édition n'est pas fournie par cette base, à compléter à la main.";
+  }catch(e){
+    statusEl.textContent = "Recherche indisponible pour l'instant — saisissez les informations manuellement.";
+  }
+};
+
+document.getElementById('source-save').onclick = async ()=>{
+  const id = document.getElementById('source-id').value;
+  const auteur = document.getElementById('source-auteur').value.trim();
+  const titre = document.getElementById('source-titre').value.trim();
+  if(!auteur && !titre){ showToast('Indiquez au moins un auteur ou un titre.'); return; }
+  const payload = {
+    id: id || uid(),
+    type: document.getElementById('source-type').value,
+    date: document.getElementById('source-date').value.trim(),
+    auteur, titre,
+    cote: document.getElementById('source-cote').value.trim(),
+    notes: document.getElementById('source-notes').value.trim(),
+    nature: document.getElementById('source-nature').value,
+    page: document.getElementById('source-page').value.trim(),
+    editeur: document.getElementById('source-editeur').value.trim(),
+    ville: document.getElementById('source-ville').value.trim(),
+    revue: document.getElementById('source-revue').value.trim(),
+    numero: document.getElementById('source-numero').value.trim(),
+    tags: Array.from(pickerTagsSource),
+  };
+  if(id){
+    const idx = data.sources.findIndex(s=>s.id===id);
+    data.sources[idx] = payload;
+  } else {
+    data.sources.push(payload);
+  }
+  overlaySource.classList.remove('open');
+  await saveData();
+  renderAll();
+  showToast('Source enregistrée.');
+};
+
+/* ---------- Fiche modal ---------- */
+
+const overlayFiche = document.getElementById('overlay-fiche');
+
+function openFicheModal(sourceId, existingFiche){
+  const src = data.sources.find(s=>s.id===sourceId);
+  document.getElementById('fiche-modal-title').textContent = existingFiche? 'Modifier la fiche de lecture' : 'Générer une fiche de lecture';
+  document.getElementById('fiche-id').value = existingFiche? existingFiche.id : '';
+  document.getElementById('fiche-source-id').value = sourceId;
+  document.getElementById('fiche-source-ref').textContent = src ? `${src.auteur}${src.titre? ' — '+src.titre:''}${src.date? ' ('+src.date+')':''}` : '';
+  document.getElementById('fiche-probleme').value = existingFiche? existingFiche.probleme : '';
+  document.getElementById('fiche-these').value = existingFiche? existingFiche.these : '';
+  document.getElementById('fiche-citations').value = existingFiche? existingFiche.citations : '';
+  document.getElementById('fiche-critique').value = existingFiche? existingFiche.critique : '';
+  document.getElementById('fiche-lien').value = existingFiche? existingFiche.lien : '';
+  pickerTagsFiche = new Set(existingFiche? existingFiche.tags : (src? src.tags : []));
+  renderTagPicker('fiche-tag-picker', pickerTagsFiche);
+  overlayFiche.classList.add('open');
+}
+
+document.getElementById('fiche-cancel').onclick = ()=> overlayFiche.classList.remove('open');
+
+document.getElementById('fiche-save').onclick = async ()=>{
+  const id = document.getElementById('fiche-id').value;
+  const sourceId = document.getElementById('fiche-source-id').value;
+  const payload = {
+    id: id || uid(),
+    sourceId,
+    probleme: document.getElementById('fiche-probleme').value.trim(),
+    these: document.getElementById('fiche-these').value.trim(),
+    citations: document.getElementById('fiche-citations').value.trim(),
+    critique: document.getElementById('fiche-critique').value.trim(),
+    lien: document.getElementById('fiche-lien').value.trim(),
+    tags: Array.from(pickerTagsFiche),
+  };
+  if(id){
+    const idx = data.fiches.findIndex(f=>f.id===id);
+    data.fiches[idx] = payload;
+  } else {
+    data.fiches.push(payload);
+  }
+  overlayFiche.classList.remove('open');
+  await saveData();
+  renderAll();
+  showToast('Fiche enregistrée.');
+};
+
+/* ---------- Delegated clicks (cards) ---------- */
+
+document.addEventListener('click', (e)=>{
+  const genId = e.target.dataset.genFiche;
+  const editSourceId = e.target.dataset.editSource;
+  const delSourceId = e.target.dataset.delSource;
+  const editFicheId = e.target.dataset.editFiche;
+  const delFicheId = e.target.dataset.delFiche;
+
+  if(genId){
+    const existing = data.fiches.find(f=>f.sourceId===genId);
+    openFicheModal(genId, existing || null);
+  }
+  if(editSourceId){
+    openSourceModal(data.sources.find(s=>s.id===editSourceId));
+  }
+  if(delSourceId){
+    if(confirm('Supprimer cette source ? Les fiches associées seront aussi supprimées.')){
+      data.sources = data.sources.filter(s=>s.id!==delSourceId);
+      data.fiches = data.fiches.filter(f=>f.sourceId!==delSourceId);
+      saveData(); renderAll(); showToast('Source supprimée.');
+    }
+  }
+  if(editFicheId){
+    const f = data.fiches.find(x=>x.id===editFicheId);
+    openFicheModal(f.sourceId, f);
+  }
+  if(delFicheId){
+    if(confirm('Supprimer cette fiche de lecture ?')){
+      data.fiches = data.fiches.filter(f=>f.id!==delFicheId);
+      saveData(); renderAll(); showToast('Fiche supprimée.');
+    }
+  }
+});
+
+/* ---------- Init ---------- */
+
+(async function init(){
+  await loadData();
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  renderAll();
+})();
+</script>
+</body>
+</html>
