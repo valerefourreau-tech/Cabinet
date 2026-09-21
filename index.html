@@ -288,6 +288,7 @@
         <select id="source-nature">
           <option value="ouvrage">Ouvrage</option>
           <option value="article">Article</option>
+          <option value="these">Thèse / mémoire</option>
         </select>
       </div>
       <div class="field">
@@ -322,6 +323,23 @@
         <label>Numéro</label>
         <input id="source-numero" placeholder="ex. 342">
       </div>
+    </div>
+    <div class="row2" id="field-these" style="display:none;">
+      <div class="field">
+        <label>Type</label>
+        <select id="source-these-type">
+          <option value="Thèse de">Thèse de…</option>
+          <option value="Mémoire de">Mémoire de…</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Discipline</label>
+        <input id="source-these-de" placeholder="ex. doctorat en histoire moderne">
+      </div>
+    </div>
+    <div class="field" id="field-these-directeur" style="display:none;">
+      <label>Sous la direction de</label>
+      <input id="source-directeur" placeholder="ex. Jean Dupont">
     </div>
     <div class="field">
       <label>Cote / référence (optionnel)</label>
@@ -700,10 +718,21 @@ function biblioEntryHtml(s){
   if(s.nature === 'article'){
     const bits = [escapeHtml(citeAuthor(s))];
     if(s.titre) bits.push(`« ${escapeHtml(s.titre)} »`);
-    if(s.revue) bits.push(escapeHtml(s.revue));
+    if(s.revue) bits.push(`<em>${escapeHtml(s.revue)}</em>`);
     if(s.numero) bits.push('n° '+escapeHtml(s.numero));
     if(s.date) bits.push(escapeHtml(s.date));
     if(s.page) bits.push('p. '+escapeHtml(s.page));
+    return finishCitation(bits);
+  }
+  if(s.nature === 'these'){
+    const bits = [escapeHtml(citeAuthor(s))];
+    if(s.titre) bits.push(`<em>${escapeHtml(s.titre)}</em>`);
+    if(s.theseDe) bits.push(escapeHtml(s.theseType||'Thèse de')+' '+escapeHtml(s.theseDe));
+    if(s.directeur) bits.push('sous la direction de '+escapeHtml(s.directeur));
+    if(s.editeur) bits.push(escapeHtml(s.editeur));
+    if(s.ville) bits.push(escapeHtml(s.ville));
+    if(s.date) bits.push(escapeHtml(s.date));
+    if(s.page) bits.push(escapeHtml(s.page)+' p.');
     return finishCitation(bits);
   }
   const bits = [escapeHtml(citeAuthor(s))];
@@ -732,6 +761,17 @@ function biblioEntryText(s){
     if(s.numero) bits.push('n° '+s.numero);
     if(s.date) bits.push(s.date);
     if(s.page) bits.push('p. '+s.page);
+    return finishCitation(bits);
+  }
+  if(s.nature === 'these'){
+    const bits = [citeAuthor(s)];
+    if(s.titre) bits.push(s.titre);
+    if(s.theseDe) bits.push((s.theseType||'Thèse de')+' '+s.theseDe);
+    if(s.directeur) bits.push('sous la direction de '+s.directeur);
+    if(s.editeur) bits.push(s.editeur);
+    if(s.ville) bits.push(s.ville);
+    if(s.date) bits.push(s.date);
+    if(s.page) bits.push(s.page+' p.');
     return finishCitation(bits);
   }
   const bits = [citeAuthor(s)];
@@ -793,10 +833,21 @@ function biblioEntryRtf(s){
   if(s.nature === 'article'){
     const bits = [toRtf(citeAuthor(s))];
     if(s.titre) bits.push(toRtf(`« ${s.titre} »`));
-    if(s.revue) bits.push(toRtf(s.revue));
+    if(s.revue) bits.push(`{\\i ${toRtf(s.revue)}}`);
     if(s.numero) bits.push(toRtf('n° '+s.numero));
     if(s.date) bits.push(toRtf(s.date));
     if(s.page) bits.push(toRtf('p. '+s.page));
+    return finishCitation(bits);
+  }
+  if(s.nature === 'these'){
+    const bits = [toRtf(citeAuthor(s))];
+    if(s.titre) bits.push(`{\\i ${toRtf(s.titre)}}`);
+    if(s.theseDe) bits.push(toRtf((s.theseType||'Thèse de')+' '+s.theseDe));
+    if(s.directeur) bits.push(toRtf('sous la direction de '+s.directeur));
+    if(s.editeur) bits.push(toRtf(s.editeur));
+    if(s.ville) bits.push(toRtf(s.ville));
+    if(s.date) bits.push(toRtf(s.date));
+    if(s.page) bits.push(toRtf(s.page+' p.'));
     return finishCitation(bits);
   }
   const bits = [toRtf(citeAuthor(s))];
@@ -965,6 +1016,9 @@ function openSourceModal(source){
   document.getElementById('source-ville').value = source? (source.ville||'') : '';
   document.getElementById('source-revue').value = source? (source.revue||'') : '';
   document.getElementById('source-numero').value = source? (source.numero||'') : '';
+  document.getElementById('source-these-type').value = source? (source.theseType||'Thèse de') : 'Thèse de';
+  document.getElementById('source-these-de').value = source? (source.theseDe||'') : '';
+  document.getElementById('source-directeur').value = source? (source.directeur||'') : '';
   updateNatureFields();
   document.getElementById('source-isbn').value = '';
   document.getElementById('source-isbn-status').textContent = '';
@@ -975,10 +1029,15 @@ function openSourceModal(source){
 
 document.getElementById('source-nature').onchange = updateNatureFields;
 function updateNatureFields(){
-  const isArticle = document.getElementById('source-nature').value === 'article';
+  const nature = document.getElementById('source-nature').value;
+  const isArticle = nature === 'article';
+  const isThese = nature === 'these';
   document.getElementById('field-editeur').style.display = isArticle ? 'none' : '';
   document.getElementById('field-ville').style.display = isArticle ? 'none' : '';
   document.getElementById('field-article').style.display = isArticle ? '' : 'none';
+  document.getElementById('field-these').style.display = isThese ? '' : 'none';
+  document.getElementById('field-these-directeur').style.display = isThese ? '' : 'none';
+  document.querySelector('#field-editeur label').textContent = isThese ? 'Université' : "Maison d'édition";
   document.getElementById('label-page').textContent = isArticle ? 'Page(s) citées (optionnel)' : 'Nombre de pages (optionnel)';
   document.getElementById('source-page').placeholder = isArticle ? 'ex. 45-52' : 'ex. 320';
 }
@@ -1034,6 +1093,9 @@ document.getElementById('source-save').onclick = async ()=>{
     ville: document.getElementById('source-ville').value.trim(),
     revue: document.getElementById('source-revue').value.trim(),
     numero: document.getElementById('source-numero').value.trim(),
+    theseType: document.getElementById('source-these-type').value,
+    theseDe: document.getElementById('source-these-de').value.trim(),
+    directeur: document.getElementById('source-directeur').value.trim(),
     tags: Array.from(pickerTagsSource),
   };
   if(id){
