@@ -126,6 +126,7 @@
   .field input,.field textarea,.field select{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--paper);color:var(--ink);}
   .field textarea{resize:vertical;min-height:60px;}
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
   .tag-picker{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
   .tag-opt{font-size:11.5px;padding:3px 10px;border-radius:10px;border:1px solid var(--border);color:var(--ink-soft);background:var(--paper);}
   .tag-opt.on{color:#fff;border-color:transparent;}
@@ -314,10 +315,14 @@
       <label>Ville d'édition</label>
       <input id="source-ville" placeholder="ex. Paris">
     </div>
-    <div class="row2" id="field-article" style="display:none;">
+    <div class="row3" id="field-article" style="display:none;">
       <div class="field">
         <label>Journal / Revue</label>
         <input id="source-revue" placeholder="ex. Revue du Nord">
+      </div>
+      <div class="field">
+        <label>Volume</label>
+        <input id="source-volume" placeholder="ex. 12">
       </div>
       <div class="field">
         <label>Numéro</label>
@@ -719,6 +724,7 @@ function biblioEntryHtml(s){
     const bits = [escapeHtml(citeAuthor(s))];
     if(s.titre) bits.push(`« ${escapeHtml(s.titre)} »`);
     if(s.revue) bits.push(`<em>${escapeHtml(s.revue)}</em>`);
+    if(s.volume) bits.push('vol. '+escapeHtml(s.volume));
     if(s.numero) bits.push('n° '+escapeHtml(s.numero));
     if(s.date) bits.push(escapeHtml(s.date));
     if(s.page) bits.push('p. '+escapeHtml(s.page));
@@ -758,6 +764,7 @@ function biblioEntryText(s){
     const bits = [citeAuthor(s)];
     if(s.titre) bits.push(`"${s.titre}"`);
     if(s.revue) bits.push(s.revue);
+    if(s.volume) bits.push('vol. '+s.volume);
     if(s.numero) bits.push('n° '+s.numero);
     if(s.date) bits.push(s.date);
     if(s.page) bits.push('p. '+s.page);
@@ -785,9 +792,18 @@ function biblioEntryText(s){
   return finishCitation(bits);
 }
 
+function surnameOf(auteur){
+  const first = (auteur||'').split(';')[0].trim();
+  if(!first) return '';
+  const idx = first.indexOf(',');
+  if(idx !== -1) return first.slice(0, idx).trim();
+  const parts = first.split(/\s+/).filter(Boolean);
+  return parts.length ? parts[parts.length-1] : first;
+}
+
 function buildBibliographie(){
   return CATEGORIES.map(cat=>{
-    const items = data.sources.filter(s=>s.type===cat.key).sort((a,b)=>(a.auteur||'').localeCompare(b.auteur||''));
+    const items = data.sources.filter(s=>s.type===cat.key).sort((a,b)=> surnameOf(a.auteur).localeCompare(surnameOf(b.auteur), 'fr', {sensitivity:'base'}));
     return {label:cat.label, items};
   }).filter(g=>g.items.length>0);
 }
@@ -834,6 +850,7 @@ function biblioEntryRtf(s){
     const bits = [toRtf(citeAuthor(s))];
     if(s.titre) bits.push(toRtf(`« ${s.titre} »`));
     if(s.revue) bits.push(`{\\i ${toRtf(s.revue)}}`);
+    if(s.volume) bits.push(toRtf('vol. '+s.volume));
     if(s.numero) bits.push(toRtf('n° '+s.numero));
     if(s.date) bits.push(toRtf(s.date));
     if(s.page) bits.push(toRtf('p. '+s.page));
@@ -1015,6 +1032,7 @@ function openSourceModal(source){
   document.getElementById('source-tome').value = source? (source.tome||'') : '';
   document.getElementById('source-ville').value = source? (source.ville||'') : '';
   document.getElementById('source-revue').value = source? (source.revue||'') : '';
+  document.getElementById('source-volume').value = source? (source.volume||'') : '';
   document.getElementById('source-numero').value = source? (source.numero||'') : '';
   document.getElementById('source-these-type').value = source? (source.theseType||'Thèse de') : 'Thèse de';
   document.getElementById('source-these-de').value = source? (source.theseDe||'') : '';
@@ -1092,6 +1110,7 @@ document.getElementById('source-save').onclick = async ()=>{
     tome: document.getElementById('source-tome').value.trim(),
     ville: document.getElementById('source-ville').value.trim(),
     revue: document.getElementById('source-revue').value.trim(),
+    volume: document.getElementById('source-volume').value.trim(),
     numero: document.getElementById('source-numero').value.trim(),
     theseType: document.getElementById('source-these-type').value,
     theseDe: document.getElementById('source-these-de').value.trim(),
