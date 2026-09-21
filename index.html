@@ -708,11 +708,11 @@ function biblioEntryHtml(s){
   }
   const bits = [escapeHtml(citeAuthor(s))];
   if(s.titre) bits.push(`<em>${escapeHtml(s.titre)}</em>`);
-  if(s.tome) bits.push(escapeHtml(s.tome));
-  if(s.edition) bits.push(escapeHtml(s.edition));
   if(s.editeur) bits.push(escapeHtml(s.editeur));
   if(s.ville) bits.push(escapeHtml(s.ville));
   if(s.date) bits.push(escapeHtml(s.date));
+  if(s.edition) bits.push(escapeHtml(s.edition));
+  if(s.tome) bits.push(escapeHtml(s.tome));
   if(s.page) bits.push(escapeHtml(s.page)+' p.');
   return finishCitation(bits);
 }
@@ -736,11 +736,11 @@ function biblioEntryText(s){
   }
   const bits = [citeAuthor(s)];
   if(s.titre) bits.push(s.titre);
-  if(s.tome) bits.push(s.tome);
-  if(s.edition) bits.push(s.edition);
   if(s.editeur) bits.push(s.editeur);
   if(s.ville) bits.push(s.ville);
   if(s.date) bits.push(s.date);
+  if(s.edition) bits.push(s.edition);
+  if(s.tome) bits.push(s.tome);
   if(s.page) bits.push(s.page+' p.');
   return finishCitation(bits);
 }
@@ -801,11 +801,11 @@ function biblioEntryRtf(s){
   }
   const bits = [toRtf(citeAuthor(s))];
   if(s.titre) bits.push(`{\\i ${toRtf(s.titre)}}`);
-  if(s.tome) bits.push(toRtf(s.tome));
-  if(s.edition) bits.push(toRtf(s.edition));
   if(s.editeur) bits.push(toRtf(s.editeur));
   if(s.ville) bits.push(toRtf(s.ville));
   if(s.date) bits.push(toRtf(s.date));
+  if(s.edition) bits.push(toRtf(s.edition));
+  if(s.tome) bits.push(toRtf(s.tome));
   if(s.page) bits.push(toRtf(s.page+' p.'));
   return finishCitation(bits);
 }
