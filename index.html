@@ -902,7 +902,7 @@ document.getElementById('btn-download-biblio-rtf').onclick = ()=>{
   let body = `{\\b ${toRtf('BIBLIOGRAPHIE')}}\\par\n${toRtf('Les débits de boisson en Flandre, XVIIe siècle')}\\par\\par\n`;
   groups.forEach(g=>{
     body += `{\\b ${toRtf(g.label.toUpperCase())}}\\par\n`;
-    g.items.forEach(s=> body += biblioEntryRtf(s) + '\\par\n');
+    g.items.forEach(s=> body += `{\\pard\\fi425\\sa100 ${biblioEntryRtf(s)}\\par}\n`);
     body += '\\par\n';
   });
   const rtf = `{\\rtf1\\ansi\\deff0{\\fonttbl{\\f0 Times New Roman;}}\\f0\\fs24\n${body}}`;
@@ -916,7 +916,7 @@ document.getElementById('btn-download-biblio').onclick = ()=>{
   let text = 'BIBLIOGRAPHIE\nLes débits de boisson en Flandre, XVIIe siècle\n\n';
   groups.forEach(g=>{
     text += g.label.toUpperCase() + '\n';
-    g.items.forEach(s=> text += biblioEntryText(s) + '\n');
+    g.items.forEach(s=> text += '\t' + biblioEntryText(s) + '\n');
     text += '\n';
   });
   downloadBlob(text, 'bibliographie.txt', 'text/plain;charset=utf-8');
