@@ -282,8 +282,13 @@
       <div id="source-isbn-status" style="font-size:11.5px;color:var(--ink-soft);margin-top:5px;"></div>
     </div>
     <div class="field">
-      <label>Auteur</label>
-      <input id="source-auteur" placeholder="ex. Muchembled, R.">
+      <label>Auteur(s)</label>
+      <div id="source-auteurs-rows" style="display:flex;flex-direction:column;gap:6px;"></div>
+      <button class="btn secondary small" id="source-add-auteur" type="button" style="margin-top:7px;">+ Ajouter un auteur</button>
+      <label style="display:flex;align-items:center;gap:7px;margin-top:10px;font-size:12.5px;color:var(--ink-soft);">
+        <input type="checkbox" id="source-dir-ouvrage" style="width:auto;">
+        Directeur / directrice de l'ouvrage (dir.)
+      </label>
     </div>
     <div class="field">
       <label>Titre</label>
@@ -718,16 +723,21 @@ function citeAuthor(s){
   return raw.split(';').map(formatOneAuthor).filter(Boolean).join(' ; ');
 }
 
+function authorCite(s){
+  const base = citeAuthor(s);
+  return s.dirOuvrage ? base + ' (dir.)' : base;
+}
+
 function biblioEntryHtml(s){
   if(s.type === 'manuscrites'){
-    const parts = [escapeHtml(citeAuthor(s))];
+    const parts = [escapeHtml(authorCite(s))];
     if(s.titre) parts.push(escapeHtml(s.titre));
     if(s.cote) parts.push(escapeHtml(s.cote));
     if(s.date) parts.push(escapeHtml(s.date));
     return finishCitation(parts);
   }
   if(s.nature === 'article'){
-    const bits = [escapeHtml(citeAuthor(s))];
+    const bits = [escapeHtml(authorCite(s))];
     if(s.titre) bits.push(`« ${escapeHtml(s.titre)} »`);
     if(s.revue) bits.push(`<em>${escapeHtml(s.revue)}</em>`);
     if(s.volume) bits.push('vol. '+escapeHtml(s.volume));
@@ -737,7 +747,7 @@ function biblioEntryHtml(s){
     return finishCitation(bits);
   }
   if(s.nature === 'these'){
-    const bits = [escapeHtml(citeAuthor(s))];
+    const bits = [escapeHtml(authorCite(s))];
     if(s.titre) bits.push(`<em>${escapeHtml(s.titre)}</em>`);
     if(s.theseDe) bits.push(escapeHtml(s.theseType||'Thèse de')+' '+escapeHtml(s.theseDe));
     if(s.directeur) bits.push('sous la direction de '+escapeHtml(s.directeur));
@@ -747,7 +757,7 @@ function biblioEntryHtml(s){
     if(s.page) bits.push(escapeHtml(s.page)+' p.');
     return finishCitation(bits);
   }
-  const bits = [escapeHtml(citeAuthor(s))];
+  const bits = [escapeHtml(authorCite(s))];
   if(s.titre) bits.push(`<em>${escapeHtml(s.titre)}</em>`);
   if(s.editeur) bits.push(escapeHtml(s.editeur));
   if(s.ville) bits.push(escapeHtml(s.ville));
@@ -760,14 +770,14 @@ function biblioEntryHtml(s){
 
 function biblioEntryText(s){
   if(s.type === 'manuscrites'){
-    const parts = [citeAuthor(s)];
+    const parts = [authorCite(s)];
     if(s.titre) parts.push(s.titre);
     if(s.cote) parts.push(s.cote);
     if(s.date) parts.push(s.date);
     return finishCitation(parts);
   }
   if(s.nature === 'article'){
-    const bits = [citeAuthor(s)];
+    const bits = [authorCite(s)];
     if(s.titre) bits.push(`"${s.titre}"`);
     if(s.revue) bits.push(s.revue);
     if(s.volume) bits.push('vol. '+s.volume);
@@ -777,7 +787,7 @@ function biblioEntryText(s){
     return finishCitation(bits);
   }
   if(s.nature === 'these'){
-    const bits = [citeAuthor(s)];
+    const bits = [authorCite(s)];
     if(s.titre) bits.push(s.titre);
     if(s.theseDe) bits.push((s.theseType||'Thèse de')+' '+s.theseDe);
     if(s.directeur) bits.push('sous la direction de '+s.directeur);
@@ -787,7 +797,7 @@ function biblioEntryText(s){
     if(s.page) bits.push(s.page+' p.');
     return finishCitation(bits);
   }
-  const bits = [citeAuthor(s)];
+  const bits = [authorCite(s)];
   if(s.titre) bits.push(s.titre);
   if(s.editeur) bits.push(s.editeur);
   if(s.ville) bits.push(s.ville);
@@ -846,14 +856,14 @@ function toRtf(str){
 
 function biblioEntryRtf(s){
   if(s.type === 'manuscrites'){
-    const parts = [citeAuthor(s)];
+    const parts = [authorCite(s)];
     if(s.titre) parts.push(s.titre);
     if(s.cote) parts.push(s.cote);
     if(s.date) parts.push(s.date);
     return toRtf(finishCitation(parts));
   }
   if(s.nature === 'article'){
-    const bits = [toRtf(citeAuthor(s))];
+    const bits = [toRtf(authorCite(s))];
     if(s.titre) bits.push(toRtf(`« ${s.titre} »`));
     if(s.revue) bits.push(`{\\i ${toRtf(s.revue)}}`);
     if(s.volume) bits.push(toRtf('vol. '+s.volume));
@@ -863,7 +873,7 @@ function biblioEntryRtf(s){
     return finishCitation(bits);
   }
   if(s.nature === 'these'){
-    const bits = [toRtf(citeAuthor(s))];
+    const bits = [toRtf(authorCite(s))];
     if(s.titre) bits.push(`{\\i ${toRtf(s.titre)}}`);
     if(s.theseDe) bits.push(toRtf((s.theseType||'Thèse de')+' '+s.theseDe));
     if(s.directeur) bits.push(toRtf('sous la direction de '+s.directeur));
@@ -873,7 +883,7 @@ function biblioEntryRtf(s){
     if(s.page) bits.push(toRtf(s.page+' p.'));
     return finishCitation(bits);
   }
-  const bits = [toRtf(citeAuthor(s))];
+  const bits = [toRtf(authorCite(s))];
   if(s.titre) bits.push(`{\\i ${toRtf(s.titre)}}`);
   if(s.editeur) bits.push(toRtf(s.editeur));
   if(s.ville) bits.push(toRtf(s.ville));
@@ -932,6 +942,34 @@ function sourceHeading(s){
   const auteur = s.auteur || '(auteur inconnu)';
   return s.titre ? `${auteur} — ${s.titre}` : auteur;
 }
+
+function renderAuteurRows(names){
+  const container = document.getElementById('source-auteurs-rows');
+  container.innerHTML = '';
+  const list = names.length ? names : [''];
+  list.forEach((name, i)=>{
+    const row = document.createElement('div');
+    row.style.display = 'flex';
+    row.style.gap = '6px';
+    row.innerHTML = `<input class="source-auteur-input" placeholder="ex. Muchembled, R." style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--paper);color:var(--ink);">
+      <button class="btn secondary small" type="button" data-remove-auteur="${i}">✕</button>`;
+    row.querySelector('input').value = name;
+    container.appendChild(row);
+  });
+  container.querySelectorAll('[data-remove-auteur]').forEach(btn=>{
+    btn.onclick = ()=>{
+      const rows = Array.from(container.querySelectorAll('.source-auteur-input')).map(i=>i.value);
+      rows.splice(Number(btn.dataset.removeAuteur), 1);
+      renderAuteurRows(rows);
+    };
+  });
+}
+
+document.getElementById('source-add-auteur').onclick = ()=>{
+  const rows = Array.from(document.querySelectorAll('.source-auteur-input')).map(i=>i.value);
+  rows.push('');
+  renderAuteurRows(rows);
+};
 
 function tagChip(id){
   const t = tagById(id);
@@ -1027,7 +1065,8 @@ function openSourceModal(source){
   document.getElementById('source-id').value = source? source.id : '';
   document.getElementById('source-type').value = source? source.type : 'manuscrites';
   document.getElementById('source-date').value = source? source.date : '';
-  document.getElementById('source-auteur').value = source? source.auteur : '';
+  renderAuteurRows(source && source.auteur ? source.auteur.split(';').map(a=>a.trim()) : ['']);
+  document.getElementById('source-dir-ouvrage').checked = source? !!source.dirOuvrage : false;
   document.getElementById('source-titre').value = source? source.titre : '';
   document.getElementById('source-cote').value = source? source.cote : '';
   document.getElementById('source-notes').value = source? source.notes : '';
@@ -1121,7 +1160,7 @@ document.getElementById('source-paste-parse').onclick = ()=>{
   const statusEl = document.getElementById('source-paste-status');
   if(!text){ statusEl.textContent = 'Collez une référence à analyser.'; return; }
   const r = parsePastedBiblio(text);
-  if(r.auteur) document.getElementById('source-auteur').value = r.auteur;
+  if(r.auteur) renderAuteurRows(r.auteur.split(';').map(a=>a.trim()));
   if(r.titre) document.getElementById('source-titre').value = r.titre;
   if(r.date) document.getElementById('source-date').value = r.date;
   if(r.editeur) document.getElementById('source-editeur').value = r.editeur;
@@ -1152,7 +1191,7 @@ document.getElementById('source-isbn-lookup').onclick = async ()=>{
       statusEl.textContent = 'Aucun ouvrage trouvé pour cet ISBN — saisissez les informations manuellement.';
       return;
     }
-    if(info.authors) document.getElementById('source-auteur').value = info.authors.join(' ; ');
+    if(info.authors) renderAuteurRows(info.authors);
     if(info.title) document.getElementById('source-titre').value = info.title + (info.subtitle? ' : '+info.subtitle : '');
     if(info.publishedDate) document.getElementById('source-date').value = info.publishedDate.slice(0,4);
     if(info.publisher) document.getElementById('source-editeur').value = info.publisher;
@@ -1167,7 +1206,7 @@ document.getElementById('source-isbn-lookup').onclick = async ()=>{
 
 document.getElementById('source-save').onclick = async ()=>{
   const id = document.getElementById('source-id').value;
-  const auteur = document.getElementById('source-auteur').value.trim();
+  const auteur = Array.from(document.querySelectorAll('.source-auteur-input')).map(i=>i.value.trim()).filter(Boolean).join(' ; ');
   const titre = document.getElementById('source-titre').value.trim();
   if(!auteur && !titre){ showToast('Indiquez au moins un auteur ou un titre.'); return; }
   const payload = {
@@ -1175,6 +1214,7 @@ document.getElementById('source-save').onclick = async ()=>{
     type: document.getElementById('source-type').value,
     date: document.getElementById('source-date').value.trim(),
     auteur, titre,
+    dirOuvrage: document.getElementById('source-dir-ouvrage').checked,
     cote: document.getElementById('source-cote').value.trim(),
     notes: document.getElementById('source-notes').value.trim(),
     nature: document.getElementById('source-nature').value,
