@@ -148,6 +148,28 @@
     #main{padding:22px 18px;}
     .stat-grid{grid-template-columns:1fr;}
   }
+
+  .inline-input{padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--paper);color:var(--ink);}
+  .statut-badge{font-size:11px;padding:2px 9px;border-radius:10px;cursor:pointer;border:1px solid var(--border);background:var(--paper);color:var(--ink-soft);}
+  .statut-badge.statut-en-cours{background:#F3E6C8;color:var(--ochre);border-color:#E0CFA3;}
+  .statut-badge.statut-lue{background:#DDE4DA;color:var(--green);border-color:#C3D0BF;}
+  .progress-track{display:flex;height:10px;border-radius:5px;background:var(--paper-dark);overflow:hidden;}
+  .progress-seg.seg-lue{background:var(--green);}
+  .progress-seg.seg-en-cours{background:var(--gold);}
+  .progress-legend{display:flex;gap:16px;margin-top:8px;font-size:12px;color:var(--ink-soft);flex-wrap:wrap;}
+  .dot-a-lire{background:var(--paper-dark);border:1px solid var(--border);}
+  .dot-en-cours{background:var(--gold);}
+  .dot-lue{background:var(--green);}
+  .progress-legend .dot{display:inline-block;margin-right:5px;}
+  .quote{font-family:'Fraunces',serif;font-size:15px;line-height:1.5;border-left:3px solid var(--gold);padding-left:12px;margin:8px 0;white-space:pre-wrap;}
+  .plan-num{font-family:'IBM Plex Mono',monospace;color:var(--wine);margin-right:6px;font-size:13px;}
+  .plan-links{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;}
+  .plan-link{font-size:11px;padding:2px 8px;border-radius:10px;background:var(--paper-dark);color:var(--ink-soft);}
+  .check-list{max-height:150px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius);padding:6px 8px;background:var(--paper);}
+  .check-row{display:flex;gap:7px;align-items:flex-start;font-size:12.5px;padding:3px 0;color:var(--ink);}
+  .check-row input{width:auto;margin-top:3px;}
+  .note-line{font-size:13.5px;}
+  .note-mode{font-size:10.5px;color:var(--ink-soft);margin-left:6px;}
 </style>
 </head>
 <body>
@@ -175,6 +197,9 @@
       <div class="nav-item active" data-view="dashboard">Tableau de bord</div>
       <div class="nav-item" data-view="sources">Sources <span class="count" id="count-sources"></span></div>
       <div class="nav-item" data-view="fiches">Fiches de lecture <span class="count" id="count-fiches"></span></div>
+      <div class="nav-item" data-view="citations">Citations <span class="count" id="count-citations"></span></div>
+      <div class="nav-item" data-view="notes">Notes de bas de page <span class="count" id="count-notes"></span></div>
+      <div class="nav-item" data-view="plan">Plan du mémoire</div>
       <div class="nav-item" data-view="biblio">Bibliographie</div>
     </nav>
     <div class="tag-legend">
@@ -202,6 +227,8 @@
         <div class="stat-card"><div class="num" id="stat-fiches">0</div><div class="label">fiches de lecture rédigées</div></div>
         <div class="stat-card"><div class="num" id="stat-missing">0</div><div class="label">sources sans fiche</div></div>
       </div>
+      <div class="section-title">Avancement de la lecture</div>
+      <div id="reading-progress"></div>
       <div class="section-title">Répartition par thème</div>
       <div id="theme-bars"></div>
       <div class="section-title">Sources à traiter en priorité</div>
@@ -219,6 +246,12 @@
       </div>
       <div class="toolbar">
         <input class="search" id="search-sources" placeholder="Rechercher par auteur, titre, cote…">
+        <select class="inline-input" id="filter-statut">
+          <option value="">Tous les statuts</option>
+          <option value="a-lire">À lire</option>
+          <option value="en-cours">En cours</option>
+          <option value="lue">Lue</option>
+        </select>
       </div>
       <div class="chip-row" id="tagfilter-sources" style="margin-bottom:16px;"></div>
       <div class="card-list" id="list-sources"></div>
@@ -237,6 +270,59 @@
       </div>
       <div class="chip-row" id="tagfilter-fiches" style="margin-bottom:16px;"></div>
       <div class="card-list" id="list-fiches"></div>
+    </div>
+
+    <!-- CITATIONS -->
+    <div class="view" data-view="citations">
+      <div class="view-header">
+        <div>
+          <h2>Citations</h2>
+          <div class="desc">Extraits réutilisables, classés par thème, avec leur référence déjà attachée.</div>
+        </div>
+        <button class="btn" id="btn-add-citation">+ Ajouter une citation</button>
+      </div>
+      <div class="toolbar">
+        <input class="search" id="search-citations" placeholder="Rechercher dans les citations…">
+      </div>
+      <div class="chip-row" id="tagfilter-citations" style="margin-bottom:16px;"></div>
+      <div class="card-list" id="list-citations"></div>
+    </div>
+
+    <!-- NOTES DE BAS DE PAGE -->
+    <div class="view" data-view="notes">
+      <div class="view-header">
+        <div>
+          <h2>Notes de bas de page</h2>
+          <div class="desc">Ajoutez vos notes dans l'ordre de votre texte : la forme complète, abrégée ou « Ibid. » est choisie automatiquement.</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn" id="btn-copy-notes">Copier les notes</button>
+          <button class="btn secondary" id="btn-clear-notes">Vider</button>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:16px;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <select class="inline-input" id="note-source" style="flex:1;min-width:200px;"></select>
+          <input class="inline-input" id="note-page" placeholder="Page (ex. 45)" style="width:130px;">
+          <button class="btn" id="btn-add-note" type="button">Ajouter la note</button>
+        </div>
+      </div>
+      <div class="card-list" id="list-notes"></div>
+    </div>
+
+    <!-- PLAN -->
+    <div class="view" data-view="plan">
+      <div class="view-header">
+        <div>
+          <h2>Plan du mémoire</h2>
+          <div class="desc">Structurez vos parties et rattachez-y sources et citations.</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn" id="btn-add-plan">+ Ajouter une partie</button>
+          <button class="btn secondary" id="btn-copy-plan">Copier le plan</button>
+        </div>
+      </div>
+      <div class="card-list" id="list-plan"></div>
     </div>
 
     <!-- BIBLIOGRAPHIE -->
@@ -372,6 +458,20 @@
       <label>Cote / référence (optionnel)</label>
       <input id="source-cote" placeholder="ex. AD Nord, B 1234">
     </div>
+    <div class="row2">
+      <div class="field">
+        <label>Statut de lecture</label>
+        <select id="source-statut">
+          <option value="a-lire">À lire</option>
+          <option value="en-cours">En cours</option>
+          <option value="lue">Lue</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Date de lecture (optionnel)</label>
+        <input type="date" id="source-date-lecture">
+      </div>
+    </div>
     <div class="field">
       <label>Notes (optionnel)</label>
       <textarea id="source-notes" placeholder="Contexte, contenu du fonds, remarques…"></textarea>
@@ -429,6 +529,54 @@
     <div class="modal-actions">
       <button class="btn secondary" id="fiche-cancel">Annuler</button>
       <button class="btn" id="fiche-save">Enregistrer la fiche</button>
+    </div>
+  </div>
+</div>
+
+<!-- Citation modal -->
+<div class="overlay" id="overlay-citation">
+  <div class="modal">
+    <h3 id="citation-modal-title">Ajouter une citation</h3>
+    <input type="hidden" id="citation-id">
+    <div class="field"><label>Source</label><select id="citation-source"></select></div>
+    <div class="field"><label>Citation</label><textarea id="citation-texte" style="min-height:110px;" placeholder="Recopiez l'extrait tel quel"></textarea></div>
+    <div class="field"><label>Page(s)</label><input id="citation-page" placeholder="ex. 45"></div>
+    <div class="field"><label>Commentaire (optionnel)</label><textarea id="citation-comment" placeholder="Pourquoi cet extrait est utile…"></textarea></div>
+    <div class="field">
+      <label>Thèmes</label>
+      <div class="tag-picker" id="citation-tag-picker"></div>
+      <div class="new-tag-row">
+        <input id="citation-new-tag" placeholder="Nouveau thème…">
+        <button class="btn secondary small" id="citation-add-tag" type="button">Ajouter</button>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn secondary" id="citation-cancel">Annuler</button>
+      <button class="btn" id="citation-save">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Plan modal -->
+<div class="overlay" id="overlay-plan">
+  <div class="modal">
+    <h3 id="plan-modal-title">Ajouter une partie</h3>
+    <input type="hidden" id="plan-id">
+    <div class="field"><label>Titre</label><input id="plan-titre" placeholder="ex. Les cabarets comme lieux de sociabilité"></div>
+    <div class="field">
+      <label>Niveau</label>
+      <select id="plan-niveau">
+        <option value="1">Partie (I, II…)</option>
+        <option value="2">Sous-partie (A, B…)</option>
+        <option value="3">Point (1, 2…)</option>
+      </select>
+    </div>
+    <div class="field"><label>Notes (optionnel)</label><textarea id="plan-notes" placeholder="Idées, arguments à développer…"></textarea></div>
+    <div class="field"><label>Sources rattachées</label><div class="check-list" id="plan-sources-list"></div></div>
+    <div class="field"><label>Citations rattachées</label><div class="check-list" id="plan-citations-list"></div></div>
+    <div class="modal-actions">
+      <button class="btn secondary" id="plan-cancel">Annuler</button>
+      <button class="btn" id="plan-save">Enregistrer</button>
     </div>
   </div>
 </div>
@@ -673,12 +821,14 @@ function tagById(id){ return data.tags.find(t=>t.id===id); }
 /* ---------- Rendering ---------- */
 
 function renderAll(){
+  ensureData();
   renderLegend();
   renderCounts();
   renderDashboard();
   renderSources();
   renderFiches();
   renderBibliographie();
+  renderExtras();
 }
 
 function renderLegend(){
@@ -719,6 +869,7 @@ document.getElementById('legend-list').addEventListener('click', async (e)=>{
     data.tags = data.tags.filter(t=>t.id!==tagId);
     data.sources.forEach(s=> s.tags = s.tags.filter(id=>id!==tagId));
     data.fiches.forEach(f=> f.tags = f.tags.filter(id=>id!==tagId));
+    (data.citations||[]).forEach(ci=> ci.tags = (ci.tags||[]).filter(id=>id!==tagId));
     await saveData();
     renderAll();
     showToast('Thème supprimé.');
@@ -774,6 +925,8 @@ function renderSources(){
   let items = data.sources.slice().sort((a,b)=> (a.auteur||'').localeCompare(b.auteur||''));
   if(q) items = items.filter(s => matchesSearch([s.auteur,s.titre,s.cote,s.notes].join(' '), q));
   if(sourceTagFilter.size) items = items.filter(s => s.tags.some(t=>sourceTagFilter.has(t)));
+  const fs = document.getElementById('filter-statut').value;
+  if(fs) items = items.filter(s => statutOf(s)===fs);
 
   if(items.length===0){
     list.innerHTML = `<div class="empty-state"><h3>Aucune source</h3><div>Ajoutez votre première source pour commencer à construire votre corpus.</div></div>`;
@@ -791,6 +944,7 @@ function renderSources(){
       </div>
       ${s.notes? `<div class="card-notes">${escapeHtml(s.notes)}</div>`:''}
       <div class="card-tags">${s.tags.map(id=>tagChip(id)).join('')}</div>
+      <div class="card-tags" style="margin-top:6px;"><span class="statut-badge statut-${statutOf(s)}" data-cycle-statut="${s.id}" title="Cliquer pour changer le statut">${statutLabel(statutOf(s))}${(statutOf(s)==='lue' && s.dateLecture)? ' · '+formatDateFr(s.dateLecture):''}</span></div>
       <div class="fiche-flag ${hasFiche?'':'missing'}">${hasFiche? '✓ Fiche de lecture rédigée' : 'Pas encore de fiche'}</div>
       <div class="card-actions">
         <button class="btn small" data-gen-fiche="${s.id}">${hasFiche? 'Voir/éditer la fiche':'Générer une fiche'}</button>
@@ -864,6 +1018,7 @@ function finishCitation(bits, glue){
 function citeAuthor(s){
   const raw = (s.auteur || '').trim();
   if(!raw) return '(auteur inconnu)';
+  if(s.type==='manuscrites' && !raw.includes(',')) return raw;
   return raw.split(';').map(formatOneAuthor).filter(Boolean).join(', ');
 }
 
@@ -1214,6 +1369,8 @@ function openSourceModal(source){
   document.getElementById('source-titre').value = source? source.titre : '';
   document.getElementById('source-cote').value = source? source.cote : '';
   document.getElementById('source-notes').value = source? source.notes : '';
+  document.getElementById('source-statut').value = source? (source.statut||'a-lire') : 'a-lire';
+  document.getElementById('source-date-lecture').value = source? (source.dateLecture||'') : '';
   document.getElementById('source-nature').value = source? (source.nature||'ouvrage') : 'ouvrage';
   document.getElementById('source-page').value = source? (source.page||'') : '';
   document.getElementById('source-editeur').value = source? (source.editeur||'') : '';
@@ -1361,6 +1518,7 @@ document.getElementById('source-save').onclick = async ()=>{
     dirOuvrage: document.getElementById('source-dir-ouvrage').checked,
     cote: document.getElementById('source-cote').value.trim(),
     notes: document.getElementById('source-notes').value.trim(),
+    ...readStatutFields(),
     nature: document.getElementById('source-nature').value,
     page: document.getElementById('source-page').value.trim(),
     editeur: document.getElementById('source-editeur').value.trim(),
@@ -1454,6 +1612,7 @@ document.addEventListener('click', (e)=>{
     if(confirm('Supprimer cette source ? Les fiches associées seront aussi supprimées.')){
       data.sources = data.sources.filter(s=>s.id!==delSourceId);
       data.fiches = data.fiches.filter(f=>f.sourceId!==delSourceId);
+      cleanupSource(delSourceId);
       saveData(); renderAll(); showToast('Source supprimée.');
     }
   }
@@ -1465,6 +1624,458 @@ document.addEventListener('click', (e)=>{
     if(confirm('Supprimer cette fiche de lecture ?')){
       data.fiches = data.fiches.filter(f=>f.id!==delFicheId);
       saveData(); renderAll(); showToast('Fiche supprimée.');
+    }
+  }
+});
+
+
+/* ===== Suivi de lecture, citations, notes de bas de page, plan ===== */
+const STATUTS = [{key:'a-lire',label:'À lire'},{key:'en-cours',label:'En cours'},{key:'lue',label:'Lue'}];
+function statutOf(s){ return s.statut || 'a-lire'; }
+function statutLabel(k){ const x = STATUTS.find(t=>t.key===k); return x? x.label : k; }
+function today(){ return new Date().toISOString().slice(0,10); }
+function formatDateFr(iso){ if(!iso) return ''; const [y,m,d] = iso.split('-'); return `${d}/${m}/${y}`; }
+function sourceById(id){ return data.sources.find(s=>s.id===id); }
+function trunc(str,n){ str = str||''; return str.length>n ? str.slice(0,n-1)+'…' : str; }
+function ensureData(){
+  if(!data.citations) data.citations = [];
+  if(!data.notes) data.notes = [];
+  if(!data.plan) data.plan = [];
+}
+function readStatutFields(){
+  const statut = document.getElementById('source-statut').value;
+  let d = document.getElementById('source-date-lecture').value;
+  if(statut==='lue' && !d) d = today();
+  return {statut, dateLecture:d};
+}
+function cleanupSource(id){
+  const removed = new Set(data.citations.filter(c=>c.sourceId===id).map(c=>c.id));
+  data.citations = data.citations.filter(c=>c.sourceId!==id);
+  data.notes = data.notes.filter(n=>n.sourceId!==id);
+  data.plan.forEach(n=>{
+    n.sourceIds = (n.sourceIds||[]).filter(x=>x!==id);
+    n.citationIds = (n.citationIds||[]).filter(x=>!removed.has(x));
+  });
+}
+function sourcesSorted(){
+  return data.sources.slice().sort((a,b)=> surnameOf(a.auteur).localeCompare(surnameOf(b.auteur),'fr',{sensitivity:'base'}));
+}
+function fillSourceSelect(sel, selected){
+  sel.innerHTML = '';
+  sourcesSorted().forEach(s=>{
+    const o = document.createElement('option');
+    o.value = s.id;
+    o.textContent = trunc(sourceHeading(s), 80);
+    sel.appendChild(o);
+  });
+  if(selected) sel.value = selected;
+}
+async function copyRich(html, text){
+  try{
+    if(window.ClipboardItem && navigator.clipboard && navigator.clipboard.write){
+      await navigator.clipboard.write([new ClipboardItem({
+        'text/html': new Blob([html],{type:'text/html'}),
+        'text/plain': new Blob([text],{type:'text/plain'})
+      })]);
+    } else {
+      await navigator.clipboard.writeText(text);
+    }
+    showToast('Copié.');
+  }catch(e){
+    try{ await navigator.clipboard.writeText(text); showToast('Copié (texte brut).'); }
+    catch(e2){ showToast('Copie impossible — sélectionnez le texte manuellement.'); }
+  }
+}
+
+function renderExtras(){
+  renderReadingProgress();
+  renderCitations();
+  renderNotes();
+  renderPlan();
+  document.getElementById('count-citations').textContent = data.citations.length;
+  document.getElementById('count-notes').textContent = data.notes.length;
+}
+
+/* ---- Suivi de lecture ---- */
+function renderReadingProgress(){
+  const el = document.getElementById('reading-progress');
+  const total = data.sources.length;
+  if(!total){ el.innerHTML = '<div class="empty-note">Aucune source.</div>'; return; }
+  const counts = {};
+  STATUTS.forEach(t=> counts[t.key] = data.sources.filter(s=>statutOf(s)===t.key).length);
+  const pct = k => counts[k]/total*100;
+  el.innerHTML = `<div class="progress-track"><div class="progress-seg seg-lue" style="width:${pct('lue')}%"></div><div class="progress-seg seg-en-cours" style="width:${pct('en-cours')}%"></div></div>
+    <div class="progress-legend">${STATUTS.map(t=>`<span><span class="dot dot-${t.key}"></span>${t.label} : ${counts[t.key]}</span>`).join('')}</div>`;
+}
+document.getElementById('filter-statut').onchange = renderSources;
+
+/* ---- Citations ---- */
+let citationTagFilter = new Set();
+let pickerTagsCitation = new Set();
+const overlayCitation = document.getElementById('overlay-citation');
+
+function renderCitations(){
+  renderTagFilterRow('tagfilter-citations', citationTagFilter, renderCitations);
+  const q = document.getElementById('search-citations').value.trim();
+  const list = document.getElementById('list-citations');
+  list.innerHTML = '';
+  let items = data.citations.slice().reverse();
+  if(q) items = items.filter(ci=>{
+    const s = sourceById(ci.sourceId);
+    return matchesSearch([ci.texte, ci.comment, s? sourceHeading(s):''].join(' '), q);
+  });
+  if(citationTagFilter.size) items = items.filter(ci=> (ci.tags||[]).some(t=>citationTagFilter.has(t)));
+  if(!items.length){
+    list.innerHTML = '<div class="empty-state"><h3>Aucune citation</h3><div>Ajoutez des extraits que vous voudrez réutiliser en rédigeant.</div></div>';
+    return;
+  }
+  items.forEach(ci=>{
+    const s = sourceById(ci.sourceId);
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="quote">« ${escapeHtml(ci.texte)} »</div>
+      <div class="card-meta">${s? escapeHtml(sourceHeading(s)) : 'Source supprimée'}${ci.page? ' · p. '+escapeHtml(ci.page):''}</div>
+      ${ci.comment? `<div class="card-notes">${escapeHtml(ci.comment)}</div>`:''}
+      <div class="card-tags">${(ci.tags||[]).map(id=>tagChip(id)).join('')}</div>
+      <div class="card-actions">
+        <button class="btn small" data-cit-copy="${ci.id}">Copier</button>
+        <button class="btn secondary small" data-cit-note="${ci.id}">Ajouter en note</button>
+        <button class="btn secondary small" data-cit-edit="${ci.id}">Modifier</button>
+        <button class="btn secondary small" data-cit-del="${ci.id}">Supprimer</button>
+      </div>`;
+    list.appendChild(card);
+  });
+}
+document.getElementById('search-citations').oninput = renderCitations;
+
+function openCitationModal(ci){
+  if(!data.sources.length){ showToast('Ajoutez d’abord une source.'); return; }
+  document.getElementById('citation-modal-title').textContent = ci? 'Modifier la citation' : 'Ajouter une citation';
+  document.getElementById('citation-id').value = ci? ci.id : '';
+  fillSourceSelect(document.getElementById('citation-source'), ci? ci.sourceId : null);
+  document.getElementById('citation-texte').value = ci? ci.texte : '';
+  document.getElementById('citation-page').value = ci? (ci.page||'') : '';
+  document.getElementById('citation-comment').value = ci? (ci.comment||'') : '';
+  pickerTagsCitation = new Set(ci? (ci.tags||[]) : []);
+  renderTagPicker('citation-tag-picker', pickerTagsCitation);
+  overlayCitation.classList.add('open');
+}
+document.getElementById('btn-add-citation').onclick = ()=> openCitationModal(null);
+document.getElementById('citation-cancel').onclick = ()=> overlayCitation.classList.remove('open');
+document.getElementById('citation-add-tag').onclick = ()=>{
+  const input = document.getElementById('citation-new-tag');
+  const name = input.value.trim();
+  if(!name) return;
+  const existing = data.tags.find(t=>t.name.toLowerCase()===name.toLowerCase());
+  const tag = existing || {id:uid(), name, color: PALETTE[data.tags.length % PALETTE.length]};
+  if(!existing) data.tags.push(tag);
+  pickerTagsCitation.add(tag.id);
+  input.value = '';
+  renderTagPicker('citation-tag-picker', pickerTagsCitation);
+};
+document.getElementById('citation-save').onclick = async ()=>{
+  const texte = document.getElementById('citation-texte').value.trim();
+  if(!texte){ showToast('Saisissez le texte de la citation.'); return; }
+  const id = document.getElementById('citation-id').value;
+  const payload = {
+    id: id || uid(),
+    sourceId: document.getElementById('citation-source').value,
+    texte,
+    page: document.getElementById('citation-page').value.trim(),
+    comment: document.getElementById('citation-comment').value.trim(),
+    tags: Array.from(pickerTagsCitation),
+  };
+  if(id){ data.citations[data.citations.findIndex(x=>x.id===id)] = payload; }
+  else data.citations.push(payload);
+  overlayCitation.classList.remove('open');
+  await saveData();
+  renderAll();
+  showToast('Citation enregistrée.');
+};
+
+/* ---- Notes de bas de page ---- */
+function authorFoot(s){
+  const raw = (s.auteur||'').trim();
+  if(!raw) return '(auteur inconnu)';
+  if(s.type==='manuscrites' && !raw.includes(',')) return raw;
+  const names = raw.split(';').map(a=>a.trim()).filter(Boolean).map(a=>{
+    const i = a.indexOf(',');
+    if(i!==-1){
+      const nom = a.slice(0,i).trim().toUpperCase();
+      const pre = a.slice(i+1).trim();
+      return pre? pre+' '+nom : nom;
+    }
+    const p = a.split(/\s+/);
+    if(p.length<=1) return a.toUpperCase();
+    return p.slice(0,-1).join(' ')+' '+p[p.length-1].toUpperCase();
+  });
+  return names.join(', ') + (s.dirOuvrage? ' (dir.)' : '');
+}
+
+function footnoteText(s, page, mode, html){
+  const esc = x => html? escapeHtml(x) : x;
+  const em = x => html? `<em>${escapeHtml(x)}</em>` : x;
+  const pg = page? 'p. '+esc(page) : '';
+  if(mode==='ibid') return finishCitation(['Ibid.', pg]);
+  const auth = esc(authorFoot(s));
+  const nature = s.nature || 'ouvrage';
+  const bits = [auth];
+  if(mode==='short'){
+    if(s.titre) bits.push(nature==='article'? `« ${esc(s.titre)} »` : (s.type==='manuscrites'? esc(s.titre) : em(s.titre)));
+    bits.push(pg);
+    return finishCitation(bits);
+  }
+  if(s.type==='manuscrites'){
+    if(s.titre) bits.push(esc(s.titre));
+    if(s.cote) bits.push(esc(s.cote));
+    if(s.date) bits.push(esc(s.date));
+  } else if(nature==='article'){
+    if(s.titre) bits.push(`« ${esc(s.titre)} »`);
+    if(s.revue) bits.push(em(s.revue));
+    if(s.volume) bits.push('vol. '+esc(s.volume));
+    if(s.numero) bits.push('n° '+esc(s.numero));
+    if(s.date) bits.push(esc(s.date));
+  } else if(nature==='these'){
+    if(s.titre) bits.push(em(s.titre));
+    if(s.theseDe) bits.push(esc((s.theseType||'Thèse de')+' '+s.theseDe));
+    if(s.directeur) bits.push('sous la direction de '+esc(s.directeur));
+    if(s.editeur) bits.push(esc(s.editeur));
+    if(s.ville) bits.push(esc(s.ville));
+    if(s.date) bits.push(esc(s.date));
+  } else {
+    if(s.titre) bits.push(em(s.titre));
+    if(s.editeur) bits.push(esc(s.editeur));
+    if(s.ville) bits.push(esc(s.ville));
+    if(s.date) bits.push(esc(s.date));
+    if(s.edition) bits.push(esc(s.edition));
+    if(s.tome) bits.push(esc(s.tome));
+  }
+  bits.push(pg);
+  return finishCitation(bits);
+}
+
+function computeNotes(){
+  const seen = new Set();
+  let prevId = null, prevPage = '';
+  const out = [];
+  data.notes.forEach(n=>{
+    const s = sourceById(n.sourceId);
+    if(!s) return;
+    let mode = 'full', page = n.page || '';
+    if(prevId === n.sourceId){
+      mode = 'ibid';
+      if(page === prevPage) page = '';
+    } else if(seen.has(n.sourceId)){
+      mode = 'short';
+    }
+    out.push({note:n, mode, html: footnoteText(s, page, mode, true), text: footnoteText(s, page, mode, false)});
+    seen.add(n.sourceId);
+    prevId = n.sourceId;
+    prevPage = n.page || '';
+  });
+  return out;
+}
+
+const MODE_LABELS = {full:'forme complète', short:'forme abrégée', ibid:'Ibid.'};
+
+function renderNotes(){
+  const sel = document.getElementById('note-source');
+  const keep = sel.value;
+  fillSourceSelect(sel, keep);
+  const list = document.getElementById('list-notes');
+  list.innerHTML = '';
+  const rows = computeNotes();
+  if(!rows.length){
+    list.innerHTML = '<div class="empty-state"><h3>Aucune note</h3><div>Choisissez une source, indiquez la page et ajoutez la note : elles se numérotent dans l’ordre.</div></div>';
+    return;
+  }
+  rows.forEach((r,i)=>{
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `<div class="card-top"><div class="note-line"><span class="plan-num">${i+1}.</span>${r.html}<span class="note-mode">${MODE_LABELS[r.mode]}</span></div>
+      <button class="btn secondary small" data-note-del="${r.note.id}">Retirer</button></div>`;
+    list.appendChild(card);
+  });
+}
+
+document.getElementById('btn-add-note').onclick = async ()=>{
+  const sourceId = document.getElementById('note-source').value;
+  if(!sourceId){ showToast('Ajoutez d’abord une source.'); return; }
+  data.notes.push({id:uid(), sourceId, page: document.getElementById('note-page').value.trim()});
+  document.getElementById('note-page').value = '';
+  await saveData();
+  renderAll();
+};
+document.getElementById('btn-copy-notes').onclick = ()=>{
+  const rows = computeNotes();
+  if(!rows.length){ showToast('Aucune note à copier.'); return; }
+  copyRich(rows.map((r,i)=>`<p>${i+1}. ${r.html}</p>`).join(''), rows.map((r,i)=>`${i+1}. ${r.text}`).join('\n'));
+};
+document.getElementById('btn-clear-notes').onclick = async ()=>{
+  if(!data.notes.length) return;
+  if(confirm('Retirer toutes les notes de la liste ?')){
+    data.notes = [];
+    await saveData();
+    renderAll();
+  }
+};
+
+/* ---- Plan du mémoire ---- */
+const overlayPlan = document.getElementById('overlay-plan');
+function romanize(n){
+  let o = '';
+  [['X',10],['IX',9],['V',5],['IV',4],['I',1]].forEach(([s,v])=>{ while(n>=v){ o+=s; n-=v; } });
+  return o;
+}
+function planNumbering(){
+  const c = [0,0,0];
+  return data.plan.map(n=>{
+    const l = n.niveau || 1;
+    c[l-1]++;
+    for(let i=l;i<3;i++) c[i] = 0;
+    if(l===1) return romanize(c[0])+'.';
+    if(l===2) return String.fromCharCode(64 + c[1])+'.';
+    return c[2]+'.';
+  });
+}
+function sourceLabel(s){
+  return s.type==='manuscrites' ? trunc(s.titre||s.auteur, 40) : trunc(surnameOf(s.auteur) + (s.date? ' '+s.date : ''), 40);
+}
+function renderPlan(){
+  const el = document.getElementById('list-plan');
+  el.innerHTML = '';
+  if(!data.plan.length){
+    el.innerHTML = '<div class="empty-state"><h3>Plan vide</h3><div>Commencez par ajouter vos grandes parties.</div></div>';
+    return;
+  }
+  const nums = planNumbering();
+  data.plan.forEach((n,i)=>{
+    const srcs = (n.sourceIds||[]).map(sourceById).filter(Boolean);
+    const cits = (n.citationIds||[]).map(id=>data.citations.find(c=>c.id===id)).filter(Boolean);
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.marginLeft = ((n.niveau||1)-1)*28 + 'px';
+    card.innerHTML = `
+      <div class="card-title"><span class="plan-num">${nums[i]}</span>${escapeHtml(n.titre)}</div>
+      ${n.notes? `<div class="card-notes">${escapeHtml(n.notes)}</div>`:''}
+      ${(srcs.length||cits.length)? `<div class="plan-links">${srcs.map(s=>`<span class="plan-link">${escapeHtml(sourceLabel(s))}</span>`).join('')}${cits.map(ci=>`<span class="plan-link">« ${escapeHtml(trunc(ci.texte,35))} »</span>`).join('')}</div>`:''}
+      <div class="card-actions">
+        <button class="btn secondary small" data-plan-up="${n.id}" ${i===0?'disabled':''}>↑</button>
+        <button class="btn secondary small" data-plan-down="${n.id}" ${i===data.plan.length-1?'disabled':''}>↓</button>
+        <button class="btn secondary small" data-plan-out="${n.id}" ${(n.niveau||1)<=1?'disabled':''}>←</button>
+        <button class="btn secondary small" data-plan-in="${n.id}" ${(n.niveau||1)>=3?'disabled':''}>→</button>
+        <button class="btn secondary small" data-plan-edit="${n.id}">Modifier</button>
+        <button class="btn secondary small" data-plan-del="${n.id}">Supprimer</button>
+      </div>`;
+    el.appendChild(card);
+  });
+}
+function checkList(containerId, items, checkedIds, labelFn){
+  const box = document.getElementById(containerId);
+  box.innerHTML = '';
+  if(!items.length){ box.innerHTML = '<div class="empty-note">Rien à rattacher pour le moment.</div>'; return; }
+  items.forEach(it=>{
+    const row = document.createElement('label');
+    row.className = 'check-row';
+    row.innerHTML = `<input type="checkbox" value="${it.id}" ${checkedIds.includes(it.id)?'checked':''}><span>${escapeHtml(labelFn(it))}</span>`;
+    box.appendChild(row);
+  });
+}
+function openPlanModal(n){
+  document.getElementById('plan-modal-title').textContent = n? 'Modifier la partie' : 'Ajouter une partie';
+  document.getElementById('plan-id').value = n? n.id : '';
+  document.getElementById('plan-titre').value = n? n.titre : '';
+  document.getElementById('plan-niveau').value = n? String(n.niveau||1) : '1';
+  document.getElementById('plan-notes').value = n? (n.notes||'') : '';
+  checkList('plan-sources-list', sourcesSorted(), n? (n.sourceIds||[]) : [], s=>sourceHeading(s));
+  checkList('plan-citations-list', data.citations, n? (n.citationIds||[]) : [], ci=>trunc(ci.texte,70));
+  overlayPlan.classList.add('open');
+}
+document.getElementById('btn-add-plan').onclick = ()=> openPlanModal(null);
+document.getElementById('plan-cancel').onclick = ()=> overlayPlan.classList.remove('open');
+document.getElementById('plan-save').onclick = async ()=>{
+  const titre = document.getElementById('plan-titre').value.trim();
+  if(!titre){ showToast('Donnez un titre à cette partie.'); return; }
+  const id = document.getElementById('plan-id').value;
+  const checked = cid => Array.from(document.querySelectorAll(`#${cid} input:checked`)).map(i=>i.value);
+  const payload = {
+    id: id || uid(),
+    titre,
+    niveau: Number(document.getElementById('plan-niveau').value),
+    notes: document.getElementById('plan-notes').value.trim(),
+    sourceIds: checked('plan-sources-list'),
+    citationIds: checked('plan-citations-list'),
+  };
+  if(id){ data.plan[data.plan.findIndex(x=>x.id===id)] = payload; }
+  else data.plan.push(payload);
+  overlayPlan.classList.remove('open');
+  await saveData();
+  renderAll();
+  showToast('Plan mis à jour.');
+};
+document.getElementById('btn-copy-plan').onclick = ()=>{
+  if(!data.plan.length){ showToast('Le plan est vide.'); return; }
+  const nums = planNumbering();
+  const text = data.plan.map((n,i)=> '    '.repeat((n.niveau||1)-1) + nums[i] + ' ' + n.titre).join('\n');
+  const html = data.plan.map((n,i)=>`<p style="margin-left:${((n.niveau||1)-1)*24}px">${nums[i]} ${escapeHtml(n.titre)}</p>`).join('');
+  copyRich(html, text);
+};
+
+/* ---- Clics délégués (extensions) ---- */
+document.addEventListener('click', async (e)=>{
+  const d = e.target.dataset || {};
+  if(d.cycleStatut){
+    const s = sourceById(d.cycleStatut);
+    if(!s) return;
+    const order = ['a-lire','en-cours','lue'];
+    s.statut = order[(order.indexOf(statutOf(s))+1) % order.length];
+    if(s.statut==='lue' && !s.dateLecture) s.dateLecture = today();
+    await saveData(); renderAll();
+  }
+  if(d.citCopy){
+    const ci = data.citations.find(x=>x.id===d.citCopy);
+    if(ci){
+      const s = sourceById(ci.sourceId);
+      const text = '« ' + ci.texte + ' »';
+      copyRich(`<p>« ${escapeHtml(ci.texte)} »</p>`, text);
+    }
+  }
+  if(d.citNote){
+    const ci = data.citations.find(x=>x.id===d.citNote);
+    if(ci){
+      data.notes.push({id:uid(), sourceId:ci.sourceId, page:ci.page||''});
+      await saveData(); renderAll();
+      showToast('Ajoutée aux notes de bas de page.');
+    }
+  }
+  if(d.citEdit){ openCitationModal(data.citations.find(x=>x.id===d.citEdit)); }
+  if(d.citDel){
+    if(confirm('Supprimer cette citation ?')){
+      data.citations = data.citations.filter(x=>x.id!==d.citDel);
+      data.plan.forEach(n=> n.citationIds = (n.citationIds||[]).filter(x=>x!==d.citDel));
+      await saveData(); renderAll();
+    }
+  }
+  if(d.noteDel){
+    data.notes = data.notes.filter(x=>x.id!==d.noteDel);
+    await saveData(); renderAll();
+  }
+  const moveId = d.planUp || d.planDown || d.planIn || d.planOut;
+  if(moveId){
+    const i = data.plan.findIndex(x=>x.id===moveId);
+    if(i===-1) return;
+    if(d.planUp && i>0) [data.plan[i-1], data.plan[i]] = [data.plan[i], data.plan[i-1]];
+    if(d.planDown && i<data.plan.length-1) [data.plan[i+1], data.plan[i]] = [data.plan[i], data.plan[i+1]];
+    if(d.planIn) data.plan[i].niveau = Math.min(3, (data.plan[i].niveau||1)+1);
+    if(d.planOut) data.plan[i].niveau = Math.max(1, (data.plan[i].niveau||1)-1);
+    await saveData(); renderAll();
+  }
+  if(d.planEdit){ openPlanModal(data.plan.find(x=>x.id===d.planEdit)); }
+  if(d.planDel){
+    if(confirm('Supprimer cette partie du plan ?')){
+      data.plan = data.plan.filter(x=>x.id!==d.planDel);
+      await saveData(); renderAll();
     }
   }
 });
