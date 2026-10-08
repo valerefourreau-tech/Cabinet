@@ -160,6 +160,17 @@
       <h1>Cabinet de recherche</h1>
       <div class="sub">Les débits de boisson en Flandre, XVIIe siècle</div>
     </div>
+    <div id="account-box" style="border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;background:var(--panel);font-size:12px;">
+      <div id="account-signed-out">
+        <div style="color:var(--ink-soft);margin-bottom:7px;">Connectez-vous pour sauvegarder vos données sur votre compte Google et les retrouver sur n'importe quel appareil.</div>
+        <button class="btn small" id="btn-google-signin" type="button" style="width:100%;">Se connecter avec Google</button>
+      </div>
+      <div id="account-signed-in" style="display:none;">
+        <div style="color:var(--ink-soft);">Connecté : <strong id="account-email" style="color:var(--ink);"></strong></div>
+        <div id="account-sync-status" style="color:var(--green);margin-top:3px;"></div>
+        <button class="btn secondary small" id="btn-google-signout" type="button" style="width:100%;margin-top:7px;">Se déconnecter</button>
+      </div>
+    </div>
     <nav>
       <div class="nav-item active" data-view="dashboard">Tableau de bord</div>
       <div class="nav-item" data-view="sources">Sources <span class="count" id="count-sources"></span></div>
@@ -424,8 +435,137 @@
 
 <div id="toast"></div>
 
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
 const STORAGE_KEY = 'cabinet-recherche-data';
+
+/* ---------- Google Drive sync (optionnel) ----------
+   Pour activer : créez un identifiant OAuth "Web application" sur
+   https://console.cloud.google.com/apis/credentials, ajoutez votre
+   domaine (ex. https://votre-projet.vercel.app) dans "Authorized
+   JavaScript origins", puis collez le Client ID ci-dessous. */
+const GOOGLE_CLIENT_ID = 'VOTRE_CLIENT_ID.apps.googleusercontent.com';
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+const DRIVE_FILENAME = 'cabinet-recherche-data.json';
+
+let googleAccessToken = null;
+let googleTokenClient = null;
+let driveFileId = null;
+let driveUserEmail = '';
+
+function googleConfigured(){
+  return GOOGLE_CLIENT_ID && !GOOGLE_CLIENT_ID.startsWith('VOTRE_CLIENT_ID');
+}
+
+function initGoogle(){
+  const btn = document.getElementById('btn-google-signin');
+  if(!googleConfigured()){
+    btn.disabled = true;
+    btn.textContent = 'Connexion Google non configurée';
+    return;
+  }
+  if(typeof google === 'undefined' || !google.accounts){
+    btn.disabled = true;
+    btn.textContent = 'Connexion Google indisponible ici';
+    return;
+  }
+  googleTokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: GOOGLE_CLIENT_ID,
+    scope: DRIVE_SCOPE,
+    callback: async (resp)=>{
+      if(resp.error){ showToast('Connexion Google annulée ou refusée.'); return; }
+      googleAccessToken = resp.access_token;
+      await onGoogleSignedIn();
+    }
+  });
+  btn.onclick = ()=> googleTokenClient.requestAccessToken({prompt:'consent'});
+}
+
+async function fetchUserEmail(){
+  try{
+    const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers:{Authorization:'Bearer '+googleAccessToken}
+    });
+    const json = await res.json();
+    driveUserEmail = json.email || '';
+  }catch(e){ driveUserEmail = ''; }
+}
+
+async function driveFindFile(){
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${DRIVE_FILENAME}'+and+trashed=false&spaces=drive&fields=files(id,name)`, {
+    headers:{Authorization:'Bearer '+googleAccessToken}
+  });
+  const json = await res.json();
+  return (json.files && json.files[0]) ? json.files[0].id : null;
+}
+
+async function driveReadFile(fileId){
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+    headers:{Authorization:'Bearer '+googleAccessToken}
+  });
+  if(!res.ok) throw new Error('drive read failed');
+  return await res.text();
+}
+
+async function driveCreateFile(content){
+  const boundary = 'cabinetrecherche';
+  const metadata = {name: DRIVE_FILENAME, mimeType:'application/json'};
+  const body =
+    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n`+
+    `--${boundary}\r\nContent-Type: application/json\r\n\r\n${content}\r\n--${boundary}--`;
+  const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+    method:'POST',
+    headers:{Authorization:'Bearer '+googleAccessToken, 'Content-Type':`multipart/related; boundary=${boundary}`},
+    body
+  });
+  const json = await res.json();
+  return json.id;
+}
+
+async function driveUpdateFile(fileId, content){
+  await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+    method:'PATCH',
+    headers:{Authorization:'Bearer '+googleAccessToken, 'Content-Type':'application/json'},
+    body: content
+  });
+}
+
+async function onGoogleSignedIn(){
+  await fetchUserEmail();
+  document.getElementById('account-signed-out').style.display = 'none';
+  document.getElementById('account-signed-in').style.display = '';
+  document.getElementById('account-email').textContent = driveUserEmail || 'compte Google';
+  const statusEl = document.getElementById('account-sync-status');
+  statusEl.textContent = 'Synchronisation…';
+  try{
+    driveFileId = await driveFindFile();
+    if(driveFileId){
+      const content = await driveReadFile(driveFileId);
+      data = JSON.parse(content);
+    } else {
+      driveFileId = await driveCreateFile(JSON.stringify(data));
+    }
+    statusEl.textContent = '✓ Synchronisé avec Google Drive';
+    renderAll();
+  }catch(e){
+    console.error('Drive sync error', e);
+    statusEl.textContent = 'Échec de la synchronisation — vos données restent sauvegardées localement.';
+  }
+}
+
+document.getElementById('btn-google-signout').onclick = ()=>{
+  if(googleAccessToken && typeof google !== 'undefined'){
+    google.accounts.oauth2.revoke(googleAccessToken, ()=>{});
+  }
+  googleAccessToken = null;
+  driveFileId = null;
+  driveUserEmail = '';
+  document.getElementById('account-signed-in').style.display = 'none';
+  document.getElementById('account-signed-out').style.display = '';
+  showToast('Déconnecté. Vos données restent sauvegardées localement.');
+};
+/* ---------- End Google Drive sync ---------- */
+
 const PALETTE = ['#7B2D26','#A9822F','#445940','#3F5566','#6B3F5C','#8C6A2F'];
 
 let data = { sources: [], fiches: [], tags: [] };
@@ -510,6 +650,10 @@ async function saveData(){
   }catch(e){
     console.error('Storage error', e);
     showToast('Échec de la sauvegarde — réessayez.');
+  }
+  if(googleAccessToken && driveFileId){
+    try{ await driveUpdateFile(driveFileId, JSON.stringify(data)); }
+    catch(e){ console.error('Drive save error', e); }
   }
 }
 function scheduleSave(){
@@ -720,7 +864,7 @@ function finishCitation(bits, glue){
 function citeAuthor(s){
   const raw = (s.auteur || '').trim();
   if(!raw) return '(auteur inconnu)';
-  return raw.split(';').map(formatOneAuthor).filter(Boolean).join(' ; ');
+  return raw.split(';').map(formatOneAuthor).filter(Boolean).join(', ');
 }
 
 function authorCite(s){
@@ -1332,6 +1476,17 @@ document.addEventListener('click', (e)=>{
   document.getElementById('loading').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   renderAll();
+  let tries = 0;
+  const waitForGoogle = setInterval(()=>{
+    tries++;
+    if(typeof google !== 'undefined' && google.accounts){
+      clearInterval(waitForGoogle);
+      initGoogle();
+    } else if(tries > 40){
+      clearInterval(waitForGoogle);
+      initGoogle();
+    }
+  }, 150);
 })();
 </script>
 </body>
