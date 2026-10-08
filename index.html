@@ -168,6 +168,9 @@
   .check-list{max-height:150px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius);padding:6px 8px;background:var(--paper);}
   .check-row{display:flex;gap:7px;align-items:flex-start;font-size:12.5px;padding:3px 0;color:var(--ink);}
   .check-row input{width:auto;margin-top:3px;}
+  .plan-actions{display:flex;gap:4px;flex:0 0 auto;}
+  .plan-actions .btn{padding:3px 8px;font-size:11.5px;}
+  .plan-actions .btn:disabled{opacity:.35;cursor:default;}
   .note-line{font-size:13.5px;}
   .note-mode{font-size:10.5px;color:var(--ink-soft);margin-left:6px;}
 </style>
@@ -1956,18 +1959,21 @@ function renderPlan(){
     const card = document.createElement('div');
     card.className = 'card';
     card.style.marginLeft = ((n.niveau||1)-1)*28 + 'px';
+    card.style.padding = '8px 12px';
     card.innerHTML = `
-      <div class="card-title"><span class="plan-num">${nums[i]}</span>${escapeHtml(n.titre)}</div>
-      ${n.notes? `<div class="card-notes">${escapeHtml(n.notes)}</div>`:''}
-      ${(srcs.length||cits.length)? `<div class="plan-links">${srcs.map(s=>`<span class="plan-link">${escapeHtml(sourceLabel(s))}</span>`).join('')}${cits.map(ci=>`<span class="plan-link">« ${escapeHtml(trunc(ci.texte,35))} »</span>`).join('')}</div>`:''}
-      <div class="card-actions">
-        <button class="btn secondary small" data-plan-up="${n.id}" ${i===0?'disabled':''}>↑</button>
-        <button class="btn secondary small" data-plan-down="${n.id}" ${i===data.plan.length-1?'disabled':''}>↓</button>
-        <button class="btn secondary small" data-plan-out="${n.id}" ${(n.niveau||1)<=1?'disabled':''}>←</button>
-        <button class="btn secondary small" data-plan-in="${n.id}" ${(n.niveau||1)>=3?'disabled':''}>→</button>
-        <button class="btn secondary small" data-plan-edit="${n.id}">Modifier</button>
-        <button class="btn secondary small" data-plan-del="${n.id}">Supprimer</button>
-      </div>`;
+      <div class="card-top" style="align-items:center;">
+        <div class="card-title" style="font-size:15px;"><span class="plan-num">${nums[i]}</span>${escapeHtml(n.titre)}</div>
+        <div class="plan-actions">
+          <button class="btn secondary small" data-plan-up="${n.id}" ${i===0?'disabled':''} title="Monter">↑</button>
+          <button class="btn secondary small" data-plan-down="${n.id}" ${i===data.plan.length-1?'disabled':''} title="Descendre">↓</button>
+          <button class="btn secondary small" data-plan-out="${n.id}" ${(n.niveau||1)<=1?'disabled':''} title="Remonter d'un niveau">←</button>
+          <button class="btn secondary small" data-plan-in="${n.id}" ${(n.niveau||1)>=3?'disabled':''} title="Descendre d'un niveau">→</button>
+          <button class="btn secondary small" data-plan-edit="${n.id}">Modifier</button>
+          <button class="btn secondary small" data-plan-del="${n.id}">Supprimer</button>
+        </div>
+      </div>
+      ${n.notes? `<div class="card-notes" style="margin-top:4px;">${escapeHtml(n.notes)}</div>`:''}
+      ${(srcs.length||cits.length)? `<div class="plan-links" style="margin-top:6px;">${srcs.map(s=>`<span class="plan-link">${escapeHtml(sourceLabel(s))}</span>`).join('')}${cits.map(ci=>`<span class="plan-link">« ${escapeHtml(trunc(ci.texte,35))} »</span>`).join('')}</div>`:''}`;
     el.appendChild(card);
   });
 }
