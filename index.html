@@ -171,9 +171,22 @@
   .plan-actions{display:flex;gap:4px;flex:0 0 auto;}
   .plan-actions .btn{padding:3px 8px;font-size:11.5px;}
   .plan-actions .btn:disabled{opacity:.35;cursor:default;}
+  #map{height:460px;border:1px solid var(--border);border-radius:var(--radius);background:var(--paper-dark);}
+  #map-msg{font-size:13px;color:var(--ink-soft);padding:14px;}
+  .lieu-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 12px;}
+  .lieu-actions{display:flex;gap:4px;flex:0 0 auto;}
+  .lieu-actions .btn{padding:3px 8px;font-size:11.5px;}
+  .geo-result{display:block;width:100%;text-align:left;margin-top:4px;padding:6px 8px;font-size:12px;background:var(--paper);border:1px solid var(--border);border-radius:var(--radius);color:var(--ink);}
+  .geo-result:hover{background:var(--paper-dark);}
+  .dup-warning{font-size:12px;color:var(--wine);margin-top:5px;}
+  .dup-panel{border:1px solid var(--wine);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;background:var(--panel);}
+  .dup-pair{font-size:12.5px;padding:6px 0;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .dup-pair:last-child{border-bottom:none;}
   .note-line{font-size:13.5px;}
   .note-mode{font-size:10.5px;color:var(--ink-soft);margin-left:6px;}
 </style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 </head>
 <body>
 
@@ -203,6 +216,7 @@
       <div class="nav-item" data-view="citations">Citations <span class="count" id="count-citations"></span></div>
       <div class="nav-item" data-view="notes">Notes de bas de page <span class="count" id="count-notes"></span></div>
       <div class="nav-item" data-view="plan">Plan du mémoire</div>
+      <div class="nav-item" data-view="carte">Carte <span class="count" id="count-lieux"></span></div>
       <div class="nav-item" data-view="biblio">Bibliographie</div>
     </nav>
     <div class="tag-legend">
@@ -248,6 +262,7 @@
         <button class="btn" id="btn-add-source">+ Ajouter une source</button>
       </div>
       <div class="toolbar">
+        <button class="btn secondary small" id="btn-scan-dup" type="button">Chercher les doublons</button>
         <input class="search" id="search-sources" placeholder="Rechercher par auteur, titre, cote…">
         <select class="inline-input" id="filter-statut">
           <option value="">Tous les statuts</option>
@@ -257,6 +272,7 @@
         </select>
       </div>
       <div class="chip-row" id="tagfilter-sources" style="margin-bottom:16px;"></div>
+      <div id="dup-panel"></div>
       <div class="card-list" id="list-sources"></div>
     </div>
 
@@ -328,6 +344,24 @@
       <div class="card-list" id="list-plan"></div>
     </div>
 
+    <!-- CARTE -->
+    <div class="view" data-view="carte">
+      <div class="view-header">
+        <div>
+          <h2>Carte</h2>
+          <div class="desc">Villes et paroisses de vos sources, en Flandre et alentour.</div>
+        </div>
+        <button class="btn" id="btn-add-lieu">+ Ajouter un lieu</button>
+      </div>
+      <div class="toolbar">
+        <select class="inline-input" id="filter-lieu-source" style="min-width:220px;"></select>
+      </div>
+      <div id="map-msg" style="display:none;"></div>
+      <div id="map"></div>
+      <div class="section-title">Lieux répertoriés</div>
+      <div class="card-list" id="list-lieux"></div>
+    </div>
+
     <!-- BIBLIOGRAPHIE -->
     <div class="view" data-view="biblio">
       <div class="view-header">
@@ -393,6 +427,7 @@
     <div class="field">
       <label>Titre</label>
       <input id="source-titre" placeholder="ex. La violence au village, ou intitulé du fonds d'archives">
+      <div class="dup-warning" id="source-dup-warning"></div>
     </div>
     <div class="row2">
       <div class="field">
@@ -580,6 +615,44 @@
     <div class="modal-actions">
       <button class="btn secondary" id="plan-cancel">Annuler</button>
       <button class="btn" id="plan-save">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Lieu modal -->
+<div class="overlay" id="overlay-lieu">
+  <div class="modal">
+    <h3 id="lieu-modal-title">Ajouter un lieu</h3>
+    <input type="hidden" id="lieu-id">
+    <div class="row2">
+      <div class="field"><label>Nom du lieu</label><input id="lieu-nom" placeholder="ex. Bailleul"></div>
+      <div class="field">
+        <label>Type</label>
+        <select id="lieu-type">
+          <option value="ville">Ville</option>
+          <option value="paroisse">Paroisse</option>
+          <option value="autre">Autre</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <div style="font-size:12px;color:var(--ink-soft);">Le lieu est localisé automatiquement à l'enregistrement. En cas d'homonymes, vous pouvez choisir vous-même :</div>
+      <button class="btn secondary small" id="lieu-geocode" type="button" style="margin-top:6px;">Choisir parmi les résultats</button>
+      <div id="lieu-geo-status" style="font-size:11.5px;color:var(--ink-soft);margin-top:5px;"></div>
+      <div id="lieu-geo-results"></div>
+    </div>
+    <details style="margin-bottom:14px;">
+      <summary style="font-size:12px;color:var(--ink-soft);cursor:pointer;">Coordonnées (avancé, remplies automatiquement)</summary>
+      <div class="row2" style="margin-top:8px;">
+        <div class="field"><label>Latitude</label><input id="lieu-lat" placeholder="ex. 50.738"></div>
+        <div class="field"><label>Longitude</label><input id="lieu-lng" placeholder="ex. 2.735"></div>
+      </div>
+    </details>
+    <div class="field"><label>Notes (optionnel)</label><textarea id="lieu-notes"></textarea></div>
+    <div class="field"><label>Sources liées à ce lieu</label><div class="check-list" id="lieu-sources-list"></div></div>
+    <div class="modal-actions">
+      <button class="btn secondary" id="lieu-cancel">Annuler</button>
+      <button class="btn" id="lieu-save">Enregistrer</button>
     </div>
   </div>
 </div>
@@ -1536,6 +1609,11 @@ document.getElementById('source-save').onclick = async ()=>{
     directeur: document.getElementById('source-directeur').value.trim(),
     tags: Array.from(pickerTagsSource),
   };
+  const dups = findDuplicates(payload);
+  if(dups.length){
+    const names = dups.slice(0,3).map(d=>'• '+trunc(sourceHeading(d),90)).join('\n');
+    if(!confirm('Une source similaire existe déjà :\n'+names+'\n\nL\'enregistrer quand même ?')) return;
+  }
   if(id){
     const idx = data.sources.findIndex(s=>s.id===id);
     data.sources[idx] = payload;
@@ -1644,6 +1722,7 @@ function ensureData(){
   if(!data.citations) data.citations = [];
   if(!data.notes) data.notes = [];
   if(!data.plan) data.plan = [];
+  if(!data.lieux) data.lieux = [];
 }
 function readStatutFields(){
   const statut = document.getElementById('source-statut').value;
@@ -1655,6 +1734,7 @@ function cleanupSource(id){
   const removed = new Set(data.citations.filter(c=>c.sourceId===id).map(c=>c.id));
   data.citations = data.citations.filter(c=>c.sourceId!==id);
   data.notes = data.notes.filter(n=>n.sourceId!==id);
+  data.lieux.forEach(l=> l.sourceIds = (l.sourceIds||[]).filter(x=>x!==id));
   data.plan.forEach(n=>{
     n.sourceIds = (n.sourceIds||[]).filter(x=>x!==id);
     n.citationIds = (n.citationIds||[]).filter(x=>!removed.has(x));
@@ -1695,6 +1775,9 @@ function renderExtras(){
   renderCitations();
   renderNotes();
   renderPlan();
+  renderLieux();
+  renderDupPanel();
+  document.getElementById('count-lieux').textContent = data.lieux.length;
   document.getElementById('count-citations').textContent = data.citations.length;
   document.getElementById('count-notes').textContent = data.notes.length;
 }
@@ -2082,6 +2165,294 @@ document.addEventListener('click', async (e)=>{
     if(confirm('Supprimer cette partie du plan ?')){
       data.plan = data.plan.filter(x=>x.id!==d.planDel);
       await saveData(); renderAll();
+    }
+  }
+});
+
+
+/* ===== Détection de doublons ===== */
+function norm(s){
+  return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();
+}
+function titleTokens(t){ return new Set(norm(t).split(' ').filter(w=>w.length>2)); }
+function jaccard(a,b){
+  if(!a.size || !b.size) return 0;
+  let inter = 0;
+  a.forEach(x=>{ if(b.has(x)) inter++; });
+  return inter / (a.size + b.size - inter);
+}
+function isDuplicate(a,b){
+  if(a.id && a.id===b.id) return false;
+  if(a.type==='manuscrites' && b.type==='manuscrites' && a.cote && b.cote && norm(a.cote)===norm(b.cote)) return true;
+  const ta = norm(a.titre), tb = norm(b.titre);
+  if(!ta || !tb) return false;
+  const sim = ta===tb ? 1 : jaccard(titleTokens(a.titre), titleTokens(b.titre));
+  const sa = norm(surnameOf(a.auteur)), sb = norm(surnameOf(b.auteur));
+  if(sa && sb) return sa===sb && sim>=0.75;
+  return sim>=0.9;
+}
+function findDuplicates(candidate){
+  return data.sources.filter(s=> isDuplicate(candidate, s));
+}
+function currentFormSource(){
+  return {
+    id: document.getElementById('source-id').value,
+    type: document.getElementById('source-type').value,
+    auteur: Array.from(document.querySelectorAll('.source-auteur-input')).map(i=>i.value.trim()).filter(Boolean).join(' ; '),
+    titre: document.getElementById('source-titre').value.trim(),
+    cote: document.getElementById('source-cote').value.trim(),
+  };
+}
+function checkDupLive(){
+  const el = document.getElementById('source-dup-warning');
+  const dups = findDuplicates(currentFormSource());
+  el.textContent = dups.length ? 'Attention : une source similaire existe déjà — ' + trunc(sourceHeading(dups[0]), 70) : '';
+}
+document.getElementById('source-titre').addEventListener('input', checkDupLive);
+document.getElementById('source-cote').addEventListener('input', checkDupLive);
+document.getElementById('source-auteurs-rows').addEventListener('input', checkDupLive);
+
+let dupPanelOpen = false;
+document.getElementById('btn-scan-dup').onclick = ()=>{ dupPanelOpen = !dupPanelOpen; renderDupPanel(); };
+function renderDupPanel(){
+  const el = document.getElementById('dup-panel');
+  if(!dupPanelOpen){ el.innerHTML = ''; return; }
+  const pairs = [];
+  for(let i=0;i<data.sources.length;i++){
+    for(let j=i+1;j<data.sources.length;j++){
+      if(isDuplicate(data.sources[i], data.sources[j])) pairs.push([data.sources[i], data.sources[j]]);
+    }
+  }
+  if(!pairs.length){
+    el.innerHTML = '<div class="dup-panel"><div class="empty-note">Aucun doublon détecté.</div></div>';
+    return;
+  }
+  el.innerHTML = '<div class="dup-panel"><div style="font-size:13px;margin-bottom:6px;"><strong>' + pairs.length + ' doublon(s) possible(s)</strong> — vérifiez, puis supprimez celui en trop :</div>' +
+    pairs.map(([a,b])=>`<div class="dup-pair"><span>${escapeHtml(trunc(sourceHeading(a),60))}</span><button class="btn secondary small" data-del-source="${a.id}">Supprimer</button><span>≈</span><span>${escapeHtml(trunc(sourceHeading(b),60))}</span><button class="btn secondary small" data-del-source="${b.id}">Supprimer</button></div>`).join('') + '</div>';
+}
+
+/* ===== Carte ===== */
+let mapInstance = null, markerLayer = null, markersById = {}, fitNext = true;
+let geoResults = [];
+const overlayLieu = document.getElementById('overlay-lieu');
+const LIEU_COLORS = {ville:'#7B2D26', paroisse:'#445940', autre:'#3F5566'};
+const LIEU_LABELS = {ville:'Ville', paroisse:'Paroisse', autre:'Autre'};
+
+function initMap(){
+  if(mapInstance) return;
+  const msg = document.getElementById('map-msg');
+  if(typeof L === 'undefined'){
+    msg.style.display = '';
+    msg.textContent = 'La carte n’a pas pu se charger (bibliothèque cartographique ou connexion indisponible). La liste des lieux reste utilisable.';
+    document.getElementById('map').style.display = 'none';
+    return;
+  }
+  mapInstance = L.map('map').setView([50.9, 3.2], 8);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:18, attribution:'© OpenStreetMap'}).addTo(mapInstance);
+  markerLayer = L.layerGroup().addTo(mapInstance);
+}
+
+function filteredLieux(){
+  const f = document.getElementById('filter-lieu-source').value;
+  return f ? data.lieux.filter(l=> (l.sourceIds||[]).includes(f)) : data.lieux;
+}
+
+function lieuPopup(l){
+  const srcs = (l.sourceIds||[]).map(sourceById).filter(Boolean);
+  return `<div style="font-family:'IBM Plex Sans',sans-serif;font-size:12.5px;min-width:160px;">
+    <strong>${escapeHtml(l.nom)}</strong> <span style="color:#5C5346;">(${LIEU_LABELS[l.type]||''})</span>
+    ${l.notes? `<div style="margin-top:4px;">${escapeHtml(l.notes)}</div>`:''}
+    ${srcs.length? `<div style="margin-top:4px;color:#5C5346;">${srcs.map(s=>escapeHtml(trunc(sourceHeading(s),50))).join('<br>')}</div>`:''}
+    <div style="margin-top:6px;display:flex;gap:4px;"><button class="btn secondary small" data-lieu-edit="${l.id}">Modifier</button><button class="btn secondary small" data-lieu-del="${l.id}">Supprimer</button></div>
+  </div>`;
+}
+
+function renderLieux(){
+  // filtre par source
+  const fsel = document.getElementById('filter-lieu-source');
+  const keep = fsel.value;
+  fsel.innerHTML = '<option value="">Toutes les sources</option>';
+  sourcesSorted().forEach(s=>{
+    const o = document.createElement('option');
+    o.value = s.id; o.textContent = trunc(sourceHeading(s), 70);
+    fsel.appendChild(o);
+  });
+  fsel.value = keep;
+
+  const items = filteredLieux();
+  const list = document.getElementById('list-lieux');
+  list.innerHTML = '';
+  if(!items.length){
+    list.innerHTML = '<div class="empty-state"><h3>Aucun lieu</h3><div>Ajoutez les villes et paroisses citées dans vos sources.</div></div>';
+  }
+  items.slice().sort((a,b)=>a.nom.localeCompare(b.nom,'fr',{sensitivity:'base'})).forEach(l=>{
+    const n = (l.sourceIds||[]).filter(id=>sourceById(id)).length;
+    const row = document.createElement('div');
+    row.className = 'card lieu-row';
+    row.innerHTML = `<div><strong style="font-family:'Fraunces',serif;">${escapeHtml(l.nom)}</strong> <span class="card-meta">${LIEU_LABELS[l.type]||''} · ${n} source${n>1?'s':''}</span></div>
+      <div class="lieu-actions">
+        <button class="btn secondary small" data-lieu-focus="${l.id}">Voir</button>
+        <button class="btn secondary small" data-lieu-edit="${l.id}">Modifier</button>
+        <button class="btn secondary small" data-lieu-del="${l.id}">Supprimer</button>
+      </div>`;
+    list.appendChild(row);
+  });
+
+  if(!mapInstance) return;
+  markerLayer.clearLayers();
+  markersById = {};
+  const pts = [];
+  items.forEach(l=>{
+    const lat = parseFloat(l.lat), lng = parseFloat(l.lng);
+    if(isNaN(lat) || isNaN(lng)) return;
+    const color = LIEU_COLORS[l.type] || LIEU_COLORS.autre;
+    const icon = L.divIcon({className:'', html:`<div style="width:14px;height:14px;border-radius:50%;background:${color};border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.45);"></div>`, iconSize:[14,14], iconAnchor:[7,7], popupAnchor:[0,-8]});
+    const m = L.marker([lat,lng], {icon, title:l.nom}).bindPopup(lieuPopup(l)).addTo(markerLayer);
+    m.bindTooltip(l.nom, {direction:'top', offset:[0,-6]});
+    markersById[l.id] = m;
+    pts.push([lat,lng]);
+  });
+  if(fitNext && pts.length){
+    mapInstance.fitBounds(pts, {padding:[40,40], maxZoom:11});
+    fitNext = false;
+  }
+}
+
+document.querySelector('.nav-item[data-view="carte"]').addEventListener('click', ()=>{
+  initMap();
+  renderLieux();
+  if(mapInstance) setTimeout(()=> mapInstance.invalidateSize(), 60);
+});
+document.getElementById('filter-lieu-source').onchange = ()=>{ fitNext = true; renderLieux(); };
+
+function openLieuModal(l){
+  document.getElementById('lieu-modal-title').textContent = l? 'Modifier le lieu' : 'Ajouter un lieu';
+  document.getElementById('lieu-id').value = l? l.id : '';
+  document.getElementById('lieu-nom').value = l? l.nom : '';
+  document.getElementById('lieu-type').value = l? (l.type||'ville') : 'ville';
+  document.getElementById('lieu-lat').value = l? l.lat : '';
+  document.getElementById('lieu-lng').value = l? l.lng : '';
+  document.getElementById('lieu-notes').value = l? (l.notes||'') : '';
+  document.getElementById('lieu-geo-status').textContent = '';
+  document.getElementById('lieu-geo-results').innerHTML = '';
+  checkList('lieu-sources-list', sourcesSorted(), l? (l.sourceIds||[]) : [], s=>sourceHeading(s));
+  overlayLieu.classList.add('open');
+}
+document.getElementById('btn-add-lieu').onclick = ()=> openLieuModal(null);
+document.getElementById('lieu-cancel').onclick = ()=> overlayLieu.classList.remove('open');
+
+async function geocodeQuery(q){
+  const base = 'https://nominatim.openstreetmap.org/search?format=json&limit=5&accept-language=fr&viewbox=1.5,51.5,6.0,49.8&q=' + encodeURIComponent(q);
+  let res = await fetch(base + '&bounded=1');
+  if(!res.ok) throw new Error('geocode');
+  let list = await res.json();
+  if(!list.length){
+    res = await fetch(base);
+    if(!res.ok) throw new Error('geocode');
+    list = await res.json();
+  }
+  return list;
+}
+
+document.getElementById('lieu-geocode').onclick = async ()=>{
+  const q = document.getElementById('lieu-nom').value.trim();
+  const status = document.getElementById('lieu-geo-status');
+  const box = document.getElementById('lieu-geo-results');
+  box.innerHTML = '';
+  if(!q){ status.textContent = 'Saisissez d’abord le nom du lieu.'; return; }
+  status.textContent = 'Recherche en cours…';
+  try{
+    geoResults = await geocodeQuery(q);
+    if(!geoResults.length){ status.textContent = 'Aucun résultat pour ce nom — essayez une autre orthographe.'; return; }
+    status.textContent = 'Choisissez le bon lieu :';
+    geoResults.forEach((r,i)=>{
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'geo-result';
+      b.dataset.geoPick = String(i);
+      b.textContent = r.display_name;
+      box.appendChild(b);
+    });
+  }catch(e){
+    status.textContent = 'Recherche indisponible pour le moment — réessayez dans un instant.';
+  }
+};
+
+let lieuSaving = false;
+document.getElementById('lieu-save').onclick = async ()=>{
+  if(lieuSaving) return;
+  const nom = document.getElementById('lieu-nom').value.trim();
+  let lat = document.getElementById('lieu-lat').value.trim().replace(',','.');
+  let lng = document.getElementById('lieu-lng').value.trim().replace(',','.');
+  if(!nom){ showToast('Donnez un nom au lieu.'); return; }
+  const id = document.getElementById('lieu-id').value;
+  const original = id ? data.lieux.find(x=>x.id===id) : null;
+  const coordsMissing = isNaN(parseFloat(lat)) || isNaN(parseFloat(lng));
+  const nameChanged = original && original.nom !== nom && lat===original.lat && lng===original.lng;
+  if(coordsMissing || nameChanged){
+    lieuSaving = true;
+    const status = document.getElementById('lieu-geo-status');
+    status.textContent = 'Localisation en cours…';
+    try{
+      const results = await geocodeQuery(nom);
+      if(!results.length){
+        status.textContent = 'Lieu introuvable — vérifiez l’orthographe ou utilisez « Choisir parmi les résultats ».';
+        lieuSaving = false;
+        return;
+      }
+      lat = parseFloat(results[0].lat).toFixed(5);
+      lng = parseFloat(results[0].lon).toFixed(5);
+    }catch(e){
+      status.textContent = 'Localisation indisponible pour le moment — réessayez dans un instant.';
+      lieuSaving = false;
+      return;
+    }
+    lieuSaving = false;
+  }
+  const payload = {
+    id: id || uid(), nom,
+    type: document.getElementById('lieu-type').value,
+    lat, lng,
+    notes: document.getElementById('lieu-notes').value.trim(),
+    sourceIds: Array.from(document.querySelectorAll('#lieu-sources-list input:checked')).map(i=>i.value),
+  };
+  if(id){ data.lieux[data.lieux.findIndex(x=>x.id===id)] = payload; }
+  else data.lieux.push(payload);
+  overlayLieu.classList.remove('open');
+  await saveData();
+  renderAll();
+  showToast('Lieu enregistré et localisé.');
+  if(mapInstance && markersById[payload.id]){
+    mapInstance.setView([parseFloat(lat), parseFloat(lng)], Math.max(mapInstance.getZoom(), 10));
+    markersById[payload.id].openPopup();
+  }
+};
+
+document.addEventListener('click', async (e)=>{
+  const d = e.target.dataset || {};
+  if(d.geoPick !== undefined){
+    const r = geoResults[Number(d.geoPick)];
+    if(r){
+      document.getElementById('lieu-lat').value = parseFloat(r.lat).toFixed(5);
+      document.getElementById('lieu-lng').value = parseFloat(r.lon).toFixed(5);
+      document.getElementById('lieu-geo-status').textContent = 'Coordonnées renseignées : ' + trunc(r.display_name, 60);
+      document.getElementById('lieu-geo-results').innerHTML = '';
+    }
+  }
+  if(d.lieuEdit){ if(mapInstance) mapInstance.closePopup(); openLieuModal(data.lieux.find(x=>x.id===d.lieuEdit)); }
+  if(d.lieuDel){
+    if(confirm('Supprimer ce lieu ?')){
+      if(mapInstance) mapInstance.closePopup();
+      data.lieux = data.lieux.filter(x=>x.id!==d.lieuDel);
+      await saveData(); renderAll();
+    }
+  }
+  if(d.lieuFocus){
+    const l = data.lieux.find(x=>x.id===d.lieuFocus);
+    if(l && mapInstance && markersById[l.id]){
+      document.getElementById('map').scrollIntoView({behavior:'smooth', block:'center'});
+      mapInstance.setView([parseFloat(l.lat), parseFloat(l.lng)], Math.max(mapInstance.getZoom(), 11));
+      markersById[l.id].openPopup();
     }
   }
 });
